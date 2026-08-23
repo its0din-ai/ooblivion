@@ -61,6 +61,13 @@
 
 [hidden] { display: none !important; }
 
+#particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -91,6 +98,12 @@ a:hover { text-decoration: underline; }
   padding: 10px 14px;
   background: var(--bg-panel);
   border-bottom: 1px dashed var(--border-dashed);
+  animation: barGlow 5s ease-in-out infinite;
+}
+
+@keyframes barGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  50% { box-shadow: 0 3px 14px var(--accent-dim); }
 }
 
 .brand {
@@ -102,7 +115,13 @@ a:hover { text-decoration: underline; }
   gap: 8px;
 }
 .brand:hover { text-decoration: none; }
-.brand-icon { width: 18px; height: 18px; color: var(--accent); }
+.brand-icon { width: 18px; height: 18px; color: var(--accent); transition: transform 0.5s ease; animation: iconPulse 4s ease-in-out infinite; }
+.brand:hover .brand-icon { transform: rotate(90deg); }
+
+@keyframes iconPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
 
 .nav {
   display: none;
@@ -113,12 +132,42 @@ a:hover { text-decoration: underline; }
   border-top: 1px dashed var(--border);
   margin-top: 4px;
 }
-.nav.open { display: flex; }
-.nav a { color: var(--fg-muted); padding: 8px 0; border-bottom: 1px dashed var(--border); display: inline-flex; align-items: center; gap: 6px; }
-.nav-icon { width: 15px; height: 15px; flex-shrink: 0; }
+.nav.open { display: flex; animation: navIn 0.25s ease-out; }
+
+@keyframes navIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.nav a {
+  color: var(--fg-muted);
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  transition: color 0.2s ease;
+}
+.nav-icon { width: 15px; height: 15px; flex-shrink: 0; transition: transform 0.2s ease; }
 .nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
 .nav a.active .nav-icon { color: var(--accent); }
 .nav a:hover { color: var(--accent); text-decoration: none; }
+.nav a:hover .nav-icon { transform: translateX(2px); }
+.nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+.nav a:hover::after,
+.nav a.active::after { transform: scaleX(1); }
 
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
@@ -133,8 +182,9 @@ a:hover { text-decoration: underline; }
   border-radius: 6px;
   color: var(--fg);
   cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
-.nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.nav-toggle:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .nav-toggle .icon { width: 20px; height: 20px; }
 
 .theme-toggle {
@@ -148,8 +198,9 @@ a:hover { text-decoration: underline; }
   border-radius: 6px;
   color: var(--fg);
   cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
-.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .theme-toggle .icon { width: 18px; height: 18px; }
 .theme-icon-sun { display: inline; }
 .theme-icon-moon { display: none; }
@@ -178,6 +229,8 @@ a:hover { text-decoration: underline; }
   margin: 0 auto;
   padding: 16px 14px 40px;
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 @media (min-width: 1200px) {
   .container { max-width: 1600px; padding: 20px 24px 48px; }
@@ -189,6 +242,22 @@ a:hover { text-decoration: underline; }
   background: var(--bg-panel);
   padding: 16px;
   margin-bottom: 16px;
+  animation: rise 0.4s ease-out both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+  #particles { display: none; }
+  .topbar { animation: none; }
+  .brand-icon { animation: none; transition: none; }
+  .nav.open { animation: none; }
+  .nav a, .nav a::after, .nav-icon { transition: none; }
+  .nav-toggle, .theme-toggle { transition: none; }
 }
 
 .card { margin-bottom: 16px; }
@@ -354,6 +423,8 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   text-align: center;
   padding: 12px;
   border-top: 1px dashed var(--border);
+  position: relative;
+  z-index: 1;
 }
 .footer .muted { font-size: 0.75rem; }
 
