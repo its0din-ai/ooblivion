@@ -97,6 +97,9 @@ func (s *Store) readBody(r *http.Request) (string, bool) {
 }
 
 func clientIP(r *http.Request) string {
+	if cf := r.Header.Get("CF-Connecting-IP"); cf != "" {
+		return strings.TrimSpace(cf)
+	}
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
 		return strings.TrimSpace(strings.Split(fwd, ",")[0])
 	}
