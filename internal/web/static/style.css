@@ -112,7 +112,10 @@ a:hover { text-decoration: underline; }
   margin-top: 4px;
 }
 .nav.open { display: flex; }
-.nav a { color: var(--fg-muted); padding: 8px 0; border-bottom: 1px dashed var(--border); }
+.nav a { color: var(--fg-muted); padding: 8px 0; border-bottom: 1px dashed var(--border); display: inline-flex; align-items: center; gap: 6px; }
+.nav-icon { width: 15px; height: 15px; flex-shrink: 0; }
+.nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav a.active .nav-icon { color: var(--accent); }
 .nav a:hover { color: var(--accent); text-decoration: none; }
 
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -173,6 +176,9 @@ a:hover { text-decoration: underline; }
   margin: 0 auto;
   padding: 16px 14px 40px;
   flex: 1;
+}
+@media (min-width: 1200px) {
+  .container { max-width: 1600px; padding: 20px 24px 48px; }
 }
 
 .panel {

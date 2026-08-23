@@ -2,7 +2,11 @@
 <section class="panel">
   <h1>Requests <span class="muted">({{.Total}})</span></h1>
   <form class="row filter-bar" method="get" action="/admin/requests">
-    <input type="search" name="q" value="{{.Q}}" placeholder="search path, query, body, host, ua">
+    <input type="search" name="q" value="{{.Q}}" placeholder="search path, query, body, ua">
+    <input type="text" name="host" value="{{.Host}}" list="host-list" placeholder="host (* wildcard ok, e.g. *.net)">
+    <datalist id="host-list">
+      {{range .Hosts}}<option value="{{.}}">{{end}}
+    </datalist>
     <select name="method">
       <option value="">all methods</option>
       {{$m := .Method}}

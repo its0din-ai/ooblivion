@@ -215,6 +215,24 @@ func isAPI(r *http.Request) bool {
 	return len(r.URL.Path) >= 10 && r.URL.Path[:10] == "/admin/api"
 }
 
+func activeSection(path string) string {
+	switch {
+	case path == "/admin" || path == "/admin/":
+		return "home"
+	case strings.HasPrefix(path, "/admin/requests"):
+		return "requests"
+	case strings.HasPrefix(path, "/admin/scopes"):
+		return "scopes"
+	case strings.HasPrefix(path, "/admin/notifications"):
+		return "notifications"
+	case strings.HasPrefix(path, "/admin/settings"):
+		return "settings"
+	case strings.HasPrefix(path, "/admin/audit"):
+		return "audit"
+	}
+	return ""
+}
+
 func (s *Server) render(w http.ResponseWriter, r *http.Request, page string, data map[string]any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if data == nil {
@@ -224,6 +242,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, page string, dat
 		data["Authed"] = true
 	}
 	data["Version"] = version.String()
+	data["Active"] = activeSection(r.URL.Path)
 	tmpl, ok := s.tmpl[page]
 	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)

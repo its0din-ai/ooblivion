@@ -46,11 +46,16 @@ func (s *Server) handleRequestsPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	hosts, herr := s.distinctHosts()
+	if herr != nil {
+		s.logger.Errorf("query hosts: %v", herr)
+	}
 	s.render(w, r, "requests", map[string]any{
 		"Title":      "Requests",
 		"Items":      items,
 		"Total":      total,
 		"Methods":    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"},
+		"Hosts":      hosts,
 		"Q":          filters.q,
 		"Method":     filters.method,
 		"Host":       filters.host,
@@ -77,8 +82,8 @@ func (s *Server) buildPagination(f requestFilters, total int64) map[string]any {
 	}
 
 	href := func(p int) string {
-		return fmt.Sprintf("/admin/requests?q=%s&method=%s&saved=%s&page=%d",
-			url.QueryEscape(f.q), url.QueryEscape(f.method), url.QueryEscape(f.saved), p)
+		return fmt.Sprintf("/admin/requests?q=%s&method=%s&saved=%s&host=%s&page=%d",
+			url.QueryEscape(f.q), url.QueryEscape(f.method), url.QueryEscape(f.saved), url.QueryEscape(f.host), p)
 	}
 
 	start := page - 2
@@ -109,6 +114,23 @@ func (s *Server) buildPagination(f requestFilters, total int64) map[string]any {
 		"LastHref":  href(pages),
 		"Numbers":   numbers,
 	}
+}
+
+func (s *Server) distinctHosts() ([]string, error) {
+	rows, err := s.db.Query("SELECT DISTINCT host FROM requests WHERE host != '' ORDER BY host ASC LIMIT 200")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	hosts := []string{}
+	for rows.Next() {
+		var h string
+		if err := rows.Scan(&h); err != nil {
+			return nil, err
+		}
+		hosts = append(hosts, h)
+	}
+	return hosts, rows.Err()
 }
 
 func maxInt(a, b int) int {
@@ -322,8 +344,18 @@ func (s *Server) queryRequests(f requestFilters) ([]models.Request, int64, error
 		args = append(args, f.method)
 	}
 	if f.host != "" {
-		where = append(where, "host LIKE ?")
-		args = append(args, "%"+f.host+"%")
+		if strings.Contains(f.host, "*") {
+			pattern := f.host
+			pattern = strings.ReplaceAll(pattern, `\`, `\\`)
+			pattern = strings.ReplaceAll(pattern, "%", `\%`)
+			pattern = strings.ReplaceAll(pattern, "_", `\_`)
+			pattern = strings.ReplaceAll(pattern, "*", "%")
+			where = append(where, "host LIKE ? ESCAPE '\\'")
+			args = append(args, pattern)
+		} else {
+			where = append(where, "host = ?")
+			args = append(args, f.host)
+		}
 	}
 	if f.saved == "1" || f.saved == "0" {
 		where = append(where, "saved = ?")
