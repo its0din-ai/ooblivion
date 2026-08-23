@@ -243,3 +243,184 @@ window.formatHumanTime = formatHumanTime;
     },
   };
 })();
+
+function countryFlag(code) {
+  if (!code || code.length !== 2) return "";
+  const c = code.toUpperCase();
+  return String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65) + String.fromCodePoint(0x1F1E6 + c.charCodeAt(1) - 65);
+}
+
+(function () {
+  const list = document.getElementById("req-list");
+  const toggle = document.getElementById("live-toggle");
+  const panel = document.getElementById("req-panel");
+  if (!list || !toggle || !panel) return;
+
+  const totalEl = document.getElementById("req-total");
+  const badge = document.getElementById("live-badge");
+  const emptyEl = document.getElementById("req-empty");
+  const intervalMs = 2000;
+  let timer = null;
+  let inFlight = false;
+  let lastKey = "";
+
+  function renderRow(it) {
+    const row = document.createElement("div");
+    row.className = "req-row" + (it.Saved ? " req-saved" : "");
+
+    const a = document.createElement("a");
+    a.className = "req-main";
+    a.href = "/admin/requests/" + it.ID;
+    const m = document.createElement("span");
+    m.className = "req-method";
+    m.textContent = it.Method;
+    const t = document.createElement("span");
+    t.className = "req-target";
+    t.textContent = it.Host + it.Path;
+    if (it.Query) {
+      t.appendChild(document.createTextNode("?"));
+      const q = document.createElement("span");
+      q.className = "req-query";
+      q.textContent = it.Query;
+      t.appendChild(q);
+    }
+    a.appendChild(m);
+    a.appendChild(t);
+    row.appendChild(a);
+
+    const meta = document.createElement("span");
+    meta.className = "req-meta";
+    const tag = document.createElement("span");
+    tag.className = "tag" + (it.Saved ? " tag-saved" : "");
+    tag.textContent = it.Saved ? "saved" : "raw";
+    meta.appendChild(tag);
+    if (it.SourceIP) {
+      const ip = document.createElement("a");
+      ip.className = "ip-link";
+      ip.href = "https://ipinfo.io/" + it.SourceIP;
+      ip.target = "_blank";
+      ip.rel = "noopener noreferrer";
+      ip.textContent = it.SourceIP;
+      meta.appendChild(ip);
+    }
+    if (it.IPCountry) {
+      const fl = document.createElement("span");
+      fl.className = "flag";
+      fl.title = it.IPCountry;
+      fl.textContent = countryFlag(it.IPCountry);
+      meta.appendChild(fl);
+    }
+    const time = document.createElement("time");
+    time.dataset.ts = it.CreatedAt;
+    time.textContent = it.CreatedAt;
+    meta.appendChild(time);
+    row.appendChild(meta);
+    return row;
+  }
+
+  function renderPagination(data) {
+    const nav = document.createElement("nav");
+    nav.className = "pagination";
+    nav.setAttribute("aria-label", "pagination");
+    const perPage = data.per_page || 20;
+    const pages = Math.max(1, Math.ceil(data.total / perPage));
+    const page = Math.min(Math.max(data.page || 1, 1), pages);
+    const href = (p) => {
+      const params = new URLSearchParams(location.search);
+      params.delete("flash");
+      params.set("page", String(p));
+      return location.pathname + "?" + params.toString();
+    };
+    const add = (label, p, active, disabled) => {
+      const el = document.createElement(disabled ? "span" : "a");
+      el.className = "btn btn-ghost" + (active ? " active" : "") + (disabled ? " disabled" : "");
+      el.textContent = label;
+      if (!disabled) el.href = href(p);
+      nav.appendChild(el);
+    };
+    add("first", 1, false, page === 1);
+    add("prev", page - 1, false, page === 1);
+    let start = page - 2;
+    if (start < 1) start = 1;
+    let end = start + 4;
+    if (end > pages) {
+      end = pages;
+      start = end - 4;
+      if (start < 1) start = 1;
+    }
+    for (let n = start; n <= end; n++) add(String(n), n, n === page, false);
+    add("next", page + 1, false, page === pages);
+    add("last", pages, false, page === pages);
+    const label = document.createElement("span");
+    label.className = "muted";
+    label.textContent = "page " + page + " / " + pages;
+    nav.appendChild(label);
+    return nav;
+  }
+
+  function render(data) {
+    const key = data.total + ":" + (data.items.length ? data.items[0].ID : "");
+    if (key === lastKey) return;
+    lastKey = key;
+    if (totalEl) totalEl.textContent = "(" + data.total + ")";
+    list.textContent = "";
+    for (const it of data.items) list.appendChild(renderRow(it));
+    if (emptyEl) emptyEl.hidden = data.items.length > 0;
+
+    const navs = Array.from(document.querySelectorAll("nav.pagination"));
+    if (data.items.length > 0) {
+      const nav = renderPagination(data);
+      if (navs.length) {
+        navs.forEach((n) => n.replaceWith(nav.cloneNode(true)));
+      } else {
+        panel.insertBefore(nav.cloneNode(true), list);
+        panel.insertBefore(nav.cloneNode(true), list.nextSibling);
+      }
+    } else if (navs.length) {
+      navs.forEach((n) => n.remove());
+    }
+
+    list.querySelectorAll("[data-ts]").forEach((el) => {
+      const local = formatHumanTime(el.dataset.ts);
+      if (local) el.textContent = local;
+    });
+  }
+
+  function poll() {
+    if (inFlight || document.hidden) return;
+    inFlight = true;
+    fetch("/admin/api/requests" + location.search, { headers: { Accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad response"))))
+      .then(render)
+      .catch(() => {})
+      .finally(() => (inFlight = false));
+  }
+
+  function start() {
+    panel.classList.add("live-active");
+    if (badge) badge.hidden = false;
+    if (!timer) timer = setInterval(poll, intervalMs);
+  }
+
+  function stop() {
+    panel.classList.remove("live-active");
+    if (badge) badge.hidden = true;
+    clearInterval(timer);
+    timer = null;
+  }
+
+  toggle.addEventListener("change", () => {
+    const on = toggle.checked;
+    localStorage.setItem("oob_live", on ? "1" : "0");
+    on ? start() : stop();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (toggle.checked && !document.hidden && !timer) start();
+  });
+
+  if (localStorage.getItem("oob_live") === "1") {
+    toggle.checked = true;
+    start();
+  }
+})();

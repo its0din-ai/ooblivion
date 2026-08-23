@@ -258,6 +258,8 @@ a:hover { text-decoration: underline; }
   .nav.open { animation: none; }
   .nav a, .nav a::after, .nav-icon { transition: none; }
   .nav-toggle, .theme-toggle { transition: none; }
+  .live-badge { animation: none; }
+  .panel.live-active { animation: none; }
 }
 
 .card { margin-bottom: 16px; }
@@ -402,6 +404,32 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 }
 .pagination .btn { padding: 6px 10px; font-size: 0.8rem; }
 .pagination .muted { margin-left: 6px; }
+
+.live-badge {
+  color: var(--ok);
+  border: 1px dashed var(--ok);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  animation: liveBadge 1.2s ease-in-out infinite;
+}
+
+@keyframes liveBadge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.panel.live-active {
+  border-color: var(--accent);
+  animation: liveBorder 2s ease-in-out infinite;
+}
+
+@keyframes liveBorder {
+  0%, 100% { border-color: var(--border-dashed); box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  50% { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-dim); }
+}
 
 .toast {
   position: fixed;

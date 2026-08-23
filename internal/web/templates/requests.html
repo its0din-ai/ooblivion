@@ -1,6 +1,12 @@
 {{define "content"}}
 <section class="panel">
-  <h1>Requests <span class="muted">({{.Total}})</span></h1>
+  <div class="row between">
+    <h1>Requests <span class="muted" id="req-total">({{.Total}})</span></h1>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="live-toggle"><span>Live</span></label>
+      <span class="live-badge" id="live-badge" hidden>LIVE</span>
+    </div>
+  </div>
   <form class="row filter-bar" method="get" action="/admin/requests">
     <input type="search" name="q" value="{{.Q}}" placeholder="search path, query, body, ua">
     <input type="text" name="host" value="{{.Host}}" list="host-list" placeholder="host (* wildcard ok, e.g. *.net)">
@@ -23,10 +29,9 @@
   </form>
 </section>
 
-<section class="panel">
-  {{if .Items}}
+<section class="panel" id="req-panel">
   {{template "pagination" .Pagination}}
-  <div class="req-list">
+  <div class="req-list" id="req-list">
     {{range .Items}}
     <div class="req-row {{if .Saved}}req-saved{{end}}">
       <a class="req-main" href="/admin/requests/{{.ID}}">
@@ -42,10 +47,8 @@
     </div>
     {{end}}
   </div>
+  <p class="muted" id="req-empty" {{if .Items}}hidden{{end}}>no requests captured</p>
   {{template "pagination" .Pagination}}
-  {{else}}
-  <p class="muted">no requests captured</p>
-  {{end}}
 </section>
 <script>
 sessionStorage.setItem("oob_back_list", location.href);
