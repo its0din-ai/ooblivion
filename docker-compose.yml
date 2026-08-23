@@ -17,6 +17,7 @@ services:
       context: .
       args:
         VERSION: ${OOB_VERSION:-dev}
+        COMMIT: ${OOB_COMMIT:-dev}
         BUILDDATE: ${OOB_BUILDDATE:-}
     image: ooblivion:local
     restart: unless-stopped

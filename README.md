@@ -197,6 +197,18 @@ browser/CDN caches):
 make build
 ```
 
+## Releases
+
+Versioning is tag-driven: `git describe --tags --always --dirty` (with the
+commit count stripped) produces `v1.0-gabc123` — `major.minor` from the nearest
+tag, `g<hash>` build suffix. The footer and `/admin/api/version` show it.
+
+```sh
+git tag v1.0 && git push origin v1.0   # release a version
+make build                              # footer: v1.0 on the tag, v1.0-g<hash> after
+make up                                 # docker deploy with the version embedded
+```
+
 Run the end-to-end test suite (self-starts an isolated instance on port 8180
 with a temporary database, prints a pass/fail report, and cleans up):
 

@@ -8,8 +8,11 @@ var (
 )
 
 func String() string {
-	if Commit != "" && Commit != "dev" {
+	switch {
+	case Version != "" && Version != "dev":
+		return Version
+	case Commit != "" && Commit != "dev":
 		return Commit
 	}
-	return Version
+	return "dev"
 }
