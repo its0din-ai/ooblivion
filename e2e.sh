@@ -257,6 +257,13 @@ check "X-Content-Type-Options nosniff" bash -c "echo '$hdr' | grep -qi '^X-Conte
 check "X-Frame-Options DENY" bash -c "echo '$hdr' | grep -qi '^X-Frame-Options: DENY'"
 check "Content-Security-Policy present" bash -c "echo '$hdr' | grep -qi '^Content-Security-Policy:'"
 
+# --- page inline scripts render -----------------------------------------
+say "page scripts"
+for page in scopes notifications; do
+  n=$(curl -s -b "$JAR" "$BASE/admin/$page" | grep -c 'submitRule')
+  check "$page page inline script rendered" test "$n" -ge 1
+done
+
 # --- logout --------------------------------------------------------------
 say "logout"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \

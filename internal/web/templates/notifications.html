@@ -11,25 +11,80 @@
   </form>
 </section>
 
-{{range .Items}}
-<section class="panel card" data-rule>
-  <div class="req-row">
-    <span class="req-main">
-      <span class="req-method">{{.Name}}</span>
-      <span class="rule-desc">{{.MatchOn}} · {{.MatchType}} · "{{.Pattern}}"{{if .HeaderName}} · header {{.HeaderName}}{{end}}</span>
-      <span class="tag {{if .Enabled}}tag-saved{{end}}">{{if .Enabled}}enabled{{else}}disabled{{end}}</span>
-    </span>
-    <span class="req-meta">
-      <button class="btn btn-ghost" type="button" data-edit>Update</button>
-      <button class="btn btn-ghost" type="button" data-test="{{.ID}}">Test</button>
-      <button class="btn btn-danger" type="button" data-delete="{{.ID}}">Delete</button>
-    </span>
+<section class="panel">
+  <div class="req-list">
+    {{range .Items}}
+    <div data-rule="{{.ID}}">
+      <div class="req-row">
+        <span class="req-main">
+          <span class="req-method">{{.Name}}</span>
+        </span>
+        <span class="req-meta">
+          <button class="btn" type="button" data-toggle>{{if .Enabled}}Disable{{else}}Enable{{end}}</button>
+          <button class="btn btn-ghost" type="button" data-test>Test</button>
+          <button class="btn btn-ghost" type="button" data-edit>Edit</button>
+          <button class="btn btn-danger" type="button" data-delete>Delete</button>
+        </span>
+      </div>
+      <form class="stack rule-form" data-id="{{.ID}}" action="/admin/api/notifications/{{.ID}}" method="PUT" hidden>
+        {{template "notifields" dict "Name" .Name "MatchOn" .MatchOn "MatchType" .MatchType "Pattern" .Pattern "HeaderName" (headerName .HeaderName) "Enabled" .Enabled "Button" "Update rule"}}
+      </form>
+    </div>
+    {{end}}
   </div>
-  <form class="stack rule-form" data-id="{{.ID}}" action="/admin/api/notifications/{{.ID}}" method="PUT" hidden>
-    {{template "notifields" dict "Name" .Name "MatchOn" .MatchOn "MatchType" .MatchType "Pattern" .Pattern "HeaderName" (headerName .HeaderName) "Enabled" .Enabled "Button" "Update rule"}}
-  </form>
+  {{if not .Items}}<p class="muted">no rules defined</p>{{end}}
 </section>
-{{end}}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  async function submitRule(form) {
+    const fd = new FormData(form);
+    const payload = {
+      name: fd.get("name"),
+      match_on: fd.get("match_on"),
+      match_type: fd.get("match_type"),
+      pattern: fd.get("pattern"),
+      header_name: fd.get("header_name") || null,
+      enabled: fd.get("enabled") === "on",
+    };
+    await api(form.action, { method: form.dataset.id ? "PUT" : "POST", body: JSON.stringify(payload) });
+    location.reload();
+  }
+
+  document.getElementById("rule-add").addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitRule(e.target).catch((err) => toast(err.message));
+  });
+
+  for (const row of document.querySelectorAll("[data-rule]")) {
+    const id = row.dataset.rule;
+    const form = row.querySelector(".rule-form");
+    row.querySelector("[data-edit]").addEventListener("click", () => {
+      form.hidden = !form.hidden;
+      if (!form.hidden) form.querySelector("input[name='name']").focus();
+    });
+    row.querySelector("[data-delete]").addEventListener("click", async () => {
+      if (!(await confirmDialog("delete this rule?"))) return;
+      await api("/admin/api/notifications/" + id, { method: "DELETE" });
+      location.reload();
+    });
+    row.querySelector("[data-toggle]").addEventListener("click", async () => {
+      await api("/admin/api/notifications/" + id + "/toggle", { method: "POST" });
+      location.reload();
+    });
+    const test = row.querySelector("[data-test]");
+    if (test) {
+      test.addEventListener("click", async () => {
+        await api("/admin/api/notifications/" + id + "/test", { method: "POST" });
+        toast("test message sent");
+      });
+    }
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitRule(form).catch((err) => toast(err.message));
+    });
+  }
+});
+</script>
 {{end}}
 
 {{define "notifields"}}
@@ -65,54 +120,3 @@
   </div>
   <button type="submit" class="btn btn-primary">{{.Button}}</button>
 {{end}}
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  async function submitRule(form) {
-    const fd = new FormData(form);
-    const payload = {
-      name: fd.get("name"),
-      match_on: fd.get("match_on"),
-      match_type: fd.get("match_type"),
-      pattern: fd.get("pattern"),
-      header_name: fd.get("header_name") || null,
-      enabled: fd.get("enabled") === "on",
-    };
-    await api(form.action, { method: form.dataset.id ? "PUT" : "POST", body: JSON.stringify(payload) });
-    location.reload();
-  }
-
-  for (const form of document.querySelectorAll(".rule-form")) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      submitRule(form).catch((err) => toast(err.message));
-    });
-  }
-
-  for (const card of document.querySelectorAll("[data-rule]")) {
-    const edit = card.querySelector("[data-edit]");
-    const form = card.querySelector(".rule-form");
-    if (edit && form) {
-      edit.addEventListener("click", () => {
-        form.hidden = !form.hidden;
-        if (!form.hidden) form.querySelector("input[name='name']").focus();
-      });
-    }
-    const test = card.querySelector("[data-test]");
-    if (test) {
-      test.addEventListener("click", async () => {
-        await api("/admin/api/notifications/" + test.dataset.test + "/test", { method: "POST" });
-        toast("test message sent");
-      });
-    }
-    const del = card.querySelector("[data-delete]");
-    if (del) {
-      del.addEventListener("click", async () => {
-        if (!(await confirmDialog("delete this rule?"))) return;
-        await api("/admin/api/notifications/" + del.dataset.delete, { method: "DELETE" });
-        location.reload();
-      });
-    }
-  }
-});
-</script>

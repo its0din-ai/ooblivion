@@ -305,6 +305,34 @@ func (s *Server) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+func (s *Server) handleToggleScope(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "bad id"})
+		return
+	}
+	if _, err := s.db.Exec("UPDATE scopes SET enabled = CASE enabled WHEN 1 THEN 0 ELSE 1 END WHERE id = ?", id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server error"})
+		return
+	}
+	s.logAudit("scope_toggle", fmt.Sprintf("scope %d toggled", id), authClientIP(r))
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleToggleRule(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "bad id"})
+		return
+	}
+	if _, err := s.db.Exec("UPDATE notification_rules SET enabled = CASE enabled WHEN 1 THEN 0 ELSE 1 END WHERE id = ?", id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server error"})
+		return
+	}
+	s.logAudit("rule_toggle", fmt.Sprintf("rule %d toggled", id), authClientIP(r))
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (s *Server) handleTestRule(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {

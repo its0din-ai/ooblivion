@@ -101,11 +101,13 @@ func (s *Server) Routes() http.Handler {
 
 	mux.HandleFunc("GET /admin/api/scopes", s.auth(s.handleListScopes))
 	mux.HandleFunc("POST /admin/api/scopes", s.formAware(s.auth(s.handleCreateScope)))
+	mux.HandleFunc("POST /admin/api/scopes/{id}/toggle", s.formAware(s.auth(s.handleToggleScope)))
 	mux.HandleFunc("PUT /admin/api/scopes/{id}", s.formAware(s.auth(s.handleUpdateScope)))
 	mux.HandleFunc("DELETE /admin/api/scopes/{id}", s.formAware(s.auth(s.handleDeleteScope)))
 
 	mux.HandleFunc("GET /admin/api/notifications", s.auth(s.handleListRules))
 	mux.HandleFunc("POST /admin/api/notifications", s.formAware(s.auth(s.handleCreateRule)))
+	mux.HandleFunc("POST /admin/api/notifications/{id}/toggle", s.formAware(s.auth(s.handleToggleRule)))
 	mux.HandleFunc("PUT /admin/api/notifications/{id}", s.formAware(s.auth(s.handleUpdateRule)))
 	mux.HandleFunc("DELETE /admin/api/notifications/{id}", s.formAware(s.auth(s.handleDeleteRule)))
 	mux.HandleFunc("POST /admin/api/notifications/{id}/test", s.formAware(s.auth(s.handleTestRule)))

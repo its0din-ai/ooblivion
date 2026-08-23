@@ -59,6 +59,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -283,7 +285,6 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .req-method { color: var(--accent); font-weight: 700; }
 .req-target { overflow-wrap: anywhere; }
 .req-query { color: var(--fg-muted); }
-.rule-desc { color: var(--fg-muted); overflow-wrap: anywhere; }
 .req-meta { color: var(--fg-muted); font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
 .req-meta .ip-link { color: var(--fg-muted); }
 .req-meta .ip-link:hover { color: var(--accent); }
