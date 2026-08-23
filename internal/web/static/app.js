@@ -257,7 +257,6 @@ function countryFlag(code) {
   if (!list || !toggle || !panel) return;
 
   const totalEl = document.getElementById("req-total");
-  const badge = document.getElementById("live-badge");
   const emptyEl = document.getElementById("req-empty");
   const intervalMs = 2000;
   let timer = null;
@@ -398,29 +397,30 @@ function countryFlag(code) {
 
   function start() {
     panel.classList.add("live-active");
-    if (badge) badge.hidden = false;
+    toggle.classList.add("on");
+    toggle.setAttribute("aria-pressed", "true");
     if (!timer) timer = setInterval(poll, intervalMs);
   }
 
   function stop() {
     panel.classList.remove("live-active");
-    if (badge) badge.hidden = true;
+    toggle.classList.remove("on");
+    toggle.setAttribute("aria-pressed", "false");
     clearInterval(timer);
     timer = null;
   }
 
-  toggle.addEventListener("change", () => {
-    const on = toggle.checked;
+  toggle.addEventListener("click", () => {
+    const on = !toggle.classList.contains("on");
     localStorage.setItem("oob_live", on ? "1" : "0");
     on ? start() : stop();
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (toggle.checked && !document.hidden && !timer) start();
+    if (toggle.classList.contains("on") && !document.hidden && !timer) start();
   });
 
   if (localStorage.getItem("oob_live") === "1") {
-    toggle.checked = true;
     start();
   }
 })();

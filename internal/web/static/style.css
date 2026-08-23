@@ -258,7 +258,7 @@ a:hover { text-decoration: underline; }
   .nav.open { animation: none; }
   .nav a, .nav a::after, .nav-icon { transition: none; }
   .nav-toggle, .theme-toggle { transition: none; }
-  .live-badge { animation: none; }
+  .live-btn.on::before { animation: none; }
   .panel.live-active { animation: none; }
 }
 
@@ -405,16 +405,32 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .pagination .btn { padding: 6px 10px; font-size: 0.8rem; }
 .pagination .muted { margin-left: 6px; }
 
-.live-badge {
-  color: var(--ok);
-  border: 1px dashed var(--ok);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 0.7rem;
+.live-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
   letter-spacing: 1px;
   text-transform: uppercase;
-  animation: liveBadge 1.2s ease-in-out infinite;
+  color: var(--danger);
+  background: transparent;
+  border: 1px dashed var(--danger);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
+.live-btn::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.live-btn:hover { transform: translateY(-1px); }
+.live-btn.on { color: var(--ok); border-color: var(--ok); }
+.live-btn.on::before { animation: liveBadge 1.2s ease-in-out infinite; }
 
 @keyframes liveBadge {
   0%, 100% { opacity: 1; }

@@ -3,8 +3,7 @@
   <div class="row between">
     <h1>Requests <span class="muted" id="req-total">({{.Total}})</span></h1>
     <div class="row">
-      <label class="check"><input type="checkbox" id="live-toggle"><span>Live</span></label>
-      <span class="live-badge" id="live-badge" hidden>LIVE</span>
+      <button type="button" id="live-toggle" class="live-btn" aria-pressed="false">Live</button>
     </div>
   </div>
   <form class="row filter-bar" method="get" action="/admin/requests">
