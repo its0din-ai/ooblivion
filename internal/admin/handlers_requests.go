@@ -271,6 +271,7 @@ func (s *Server) handleBulkDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleFlush(w http.ResponseWriter, r *http.Request) {
 	count, err := s.sched.Flush(true, authClientIP(r))
 	if err != nil {
+		s.logger.Errorf("flush: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server error"})
 		return
 	}

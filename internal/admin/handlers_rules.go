@@ -90,7 +90,7 @@ func (s *Server) handleListScopes(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateScope(w http.ResponseWriter, r *http.Request) {
 	var p rulePayload
-	if err := readJSON(r, &p); err != nil {
+	if err := readJSONOrForm(r, &p); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid body"})
 		return
 	}
@@ -132,7 +132,7 @@ func (s *Server) handleUpdateScope(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var p rulePayload
-	if err := readJSON(r, &p); err != nil {
+	if err := readJSONOrForm(r, &p); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid body"})
 		return
 	}
@@ -169,6 +169,10 @@ func (s *Server) handleDeleteScope(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "bad id"})
+		return
+	}
+	if _, err := s.db.Exec("UPDATE requests SET scope_id = NULL WHERE scope_id = ?", id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server error"})
 		return
 	}
 	if _, err := s.db.Exec("DELETE FROM scopes WHERE id = ?", id); err != nil {
@@ -216,7 +220,7 @@ func (s *Server) handleListRules(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateRule(w http.ResponseWriter, r *http.Request) {
 	var p rulePayload
-	if err := readJSON(r, &p); err != nil {
+	if err := readJSONOrForm(r, &p); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid body"})
 		return
 	}
@@ -254,7 +258,7 @@ func (s *Server) handleUpdateRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var p rulePayload
-	if err := readJSON(r, &p); err != nil {
+	if err := readJSONOrForm(r, &p); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid body"})
 		return
 	}
@@ -287,6 +291,10 @@ func (s *Server) handleDeleteRule(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "bad id"})
+		return
+	}
+	if _, err := s.db.Exec("DELETE FROM notification_log WHERE rule_id = ?", id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server error"})
 		return
 	}
 	if _, err := s.db.Exec("DELETE FROM notification_rules WHERE id = ?", id); err != nil {

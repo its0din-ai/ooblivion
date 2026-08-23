@@ -156,6 +156,20 @@ check "mutation with session accepted" test "$code" = "200"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X POST "$BASE/admin/api/requests/$ID/unsave")
 check "unsave works" test "$code" = "200"
 
+# --- native form POST redirect ------------------------------------------
+say "form redirect"
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -X POST "$BASE/admin/api/scopes" \
+  --data 'name=form-e2e&match_on=path&match_type=contains&pattern=/fe&enabled=on')
+check "native form POST redirects instead of raw JSON" test "$code" = "303"
+loc=$(curl -s -D - -o /dev/null -b "$JAR" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -X POST "$BASE/admin/api/scopes" \
+  --data 'name=form-e2e2&match_on=path&match_type=contains&pattern=/fe2&enabled=on' \
+  | tr -d '\r' | awk -F': ' 'tolower($1)=="location"{print $2}')
+check "form POST redirects to scopes with success flash" test "$loc" = "/admin/scopes?flash=success"
+
 # --- scopes + auto-save --------------------------------------------------
 say "scopes"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \

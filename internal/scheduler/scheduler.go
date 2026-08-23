@@ -89,9 +89,15 @@ func (s *Scheduler) Flush(manual bool, ip string) (int64, error) {
 	var res sql.Result
 	var err error
 	if manual {
+		if _, err = s.db.Exec("DELETE FROM notification_log WHERE request_id IN (SELECT id FROM requests WHERE saved = 0)"); err != nil {
+			return 0, err
+		}
 		res, err = s.db.Exec("DELETE FROM requests WHERE saved = 0")
 	} else {
 		boundary := time.Now().UTC().Add(-time.Duration(s.RetentionDays()) * 24 * time.Hour).Format(time.RFC3339)
+		if _, err = s.db.Exec("DELETE FROM notification_log WHERE request_id IN (SELECT id FROM requests WHERE saved = 0 AND created_at < ?)", boundary); err != nil {
+			return 0, err
+		}
 		res, err = s.db.Exec("DELETE FROM requests WHERE saved = 0 AND created_at < ?", boundary)
 	}
 	if err != nil {

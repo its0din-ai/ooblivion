@@ -101,6 +101,12 @@ function confirmDialog(msg, okLabel = "Confirm") {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const flash = new URLSearchParams(location.search).get("flash");
+  if (flash === "success") {
+    toast("saved successfully");
+  } else if (flash === "error") {
+    toast("operation failed");
+  }
   for (const el of document.querySelectorAll("[data-ts]")) {
     const local = formatHumanTime(el.dataset.ts);
     if (local) el.textContent = local;

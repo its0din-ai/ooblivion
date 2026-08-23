@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -76,11 +77,11 @@ func (s *Server) Routes() http.Handler {
 	mux.Handle("GET /admin/static/", static)
 
 	mux.HandleFunc("GET /admin/login", s.handleLoginPage)
-	mux.HandleFunc("POST /admin/api/login", s.handleLogin)
+	mux.HandleFunc("POST /admin/api/login", s.formAware(s.handleLogin))
 
 	mux.HandleFunc("GET /admin/", s.auth(s.handleDashboard))
 	mux.HandleFunc("GET /admin", s.auth(s.handleDashboard))
-	mux.HandleFunc("POST /admin/api/logout", s.auth(s.handleLogout))
+	mux.HandleFunc("POST /admin/api/logout", s.formAware(s.auth(s.handleLogout)))
 
 	mux.HandleFunc("GET /admin/requests", s.auth(s.handleRequestsPage))
 	mux.HandleFunc("GET /admin/requests/{id}", s.auth(s.handleDetailPage))
@@ -92,26 +93,26 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/api/stats", s.auth(s.handleStats))
 	mux.HandleFunc("GET /admin/api/requests", s.auth(s.handleListRequests))
 	mux.HandleFunc("GET /admin/api/requests/{id}", s.auth(s.handleGetRequest))
-	mux.HandleFunc("POST /admin/api/requests/{id}/save", s.auth(s.handleSaveRequest))
-	mux.HandleFunc("POST /admin/api/requests/{id}/unsave", s.auth(s.handleUnsaveRequest))
-	mux.HandleFunc("DELETE /admin/api/requests/{id}", s.auth(s.handleDeleteRequest))
-	mux.HandleFunc("POST /admin/api/requests/bulk_delete", s.auth(s.handleBulkDelete))
-	mux.HandleFunc("POST /admin/api/flush", s.auth(s.handleFlush))
+	mux.HandleFunc("POST /admin/api/requests/{id}/save", s.formAware(s.auth(s.handleSaveRequest)))
+	mux.HandleFunc("POST /admin/api/requests/{id}/unsave", s.formAware(s.auth(s.handleUnsaveRequest)))
+	mux.HandleFunc("DELETE /admin/api/requests/{id}", s.formAware(s.auth(s.handleDeleteRequest)))
+	mux.HandleFunc("POST /admin/api/requests/bulk_delete", s.formAware(s.auth(s.handleBulkDelete)))
+	mux.HandleFunc("POST /admin/api/flush", s.formAware(s.auth(s.handleFlush)))
 
 	mux.HandleFunc("GET /admin/api/scopes", s.auth(s.handleListScopes))
-	mux.HandleFunc("POST /admin/api/scopes", s.auth(s.handleCreateScope))
-	mux.HandleFunc("PUT /admin/api/scopes/{id}", s.auth(s.handleUpdateScope))
-	mux.HandleFunc("DELETE /admin/api/scopes/{id}", s.auth(s.handleDeleteScope))
+	mux.HandleFunc("POST /admin/api/scopes", s.formAware(s.auth(s.handleCreateScope)))
+	mux.HandleFunc("PUT /admin/api/scopes/{id}", s.formAware(s.auth(s.handleUpdateScope)))
+	mux.HandleFunc("DELETE /admin/api/scopes/{id}", s.formAware(s.auth(s.handleDeleteScope)))
 
 	mux.HandleFunc("GET /admin/api/notifications", s.auth(s.handleListRules))
-	mux.HandleFunc("POST /admin/api/notifications", s.auth(s.handleCreateRule))
-	mux.HandleFunc("PUT /admin/api/notifications/{id}", s.auth(s.handleUpdateRule))
-	mux.HandleFunc("DELETE /admin/api/notifications/{id}", s.auth(s.handleDeleteRule))
-	mux.HandleFunc("POST /admin/api/notifications/{id}/test", s.auth(s.handleTestRule))
+	mux.HandleFunc("POST /admin/api/notifications", s.formAware(s.auth(s.handleCreateRule)))
+	mux.HandleFunc("PUT /admin/api/notifications/{id}", s.formAware(s.auth(s.handleUpdateRule)))
+	mux.HandleFunc("DELETE /admin/api/notifications/{id}", s.formAware(s.auth(s.handleDeleteRule)))
+	mux.HandleFunc("POST /admin/api/notifications/{id}/test", s.formAware(s.auth(s.handleTestRule)))
 
 	mux.HandleFunc("GET /admin/api/settings", s.auth(s.handleGetSettings))
-	mux.HandleFunc("PUT /admin/api/settings", s.auth(s.handlePutSettings))
-	mux.HandleFunc("POST /admin/api/password", s.auth(s.handleChangePassword))
+	mux.HandleFunc("PUT /admin/api/settings", s.formAware(s.auth(s.handlePutSettings)))
+	mux.HandleFunc("POST /admin/api/password", s.formAware(s.auth(s.handleChangePassword)))
 
 	mux.HandleFunc("GET /admin/api/audit", s.auth(s.handleAudit))
 	mux.HandleFunc("GET /admin/api/version", s.auth(s.handleVersion))
@@ -159,7 +160,6 @@ func (s *Server) tokenVersion() int {
 	v, _ := strconv.Atoi(scheduler.ReadSetting(s.db, "token_version"))
 	return v
 }
-
 func (s *Server) currentClaims(r *http.Request) (*auth.Claims, error) {
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
@@ -181,6 +181,59 @@ func (s *Server) currentClaims(r *http.Request) (*auth.Claims, error) {
 
 func isAPI(r *http.Request) bool {
 	return len(r.URL.Path) >= 10 && r.URL.Path[:10] == "/admin/api"
+}
+
+type discardWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (d *discardWriter) WriteHeader(code int) {
+	d.status = code
+}
+
+func (d *discardWriter) Write(b []byte) (int, error) {
+	return len(b), nil
+}
+
+func (s *Server) formAware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+			next(w, r)
+			return
+		}
+		ww := &discardWriter{ResponseWriter: w}
+		next(ww, r)
+		if ww.status == 0 {
+			ww.status = http.StatusOK
+		}
+		http.Redirect(w, r, s.formRedirectTarget(r, ww.status == http.StatusOK), http.StatusSeeOther)
+	}
+}
+
+func (s *Server) formRedirectTarget(r *http.Request, ok bool) string {
+	flash := "success"
+	if !ok {
+		flash = "error"
+	}
+	base := "/admin"
+	switch {
+	case strings.HasPrefix(r.URL.Path, "/admin/api/login"):
+		base = "/admin/login"
+	case strings.HasPrefix(r.URL.Path, "/admin/api/scopes"):
+		base = "/admin/scopes"
+	case strings.HasPrefix(r.URL.Path, "/admin/api/notifications"):
+		base = "/admin/notifications"
+	case strings.HasPrefix(r.URL.Path, "/admin/api/requests"):
+		base = "/admin/requests"
+	case strings.HasPrefix(r.URL.Path, "/admin/api/settings"):
+		base = "/admin/settings"
+	case strings.HasPrefix(r.URL.Path, "/admin/api/password"):
+		base = "/admin/settings"
+	case strings.HasPrefix(r.URL.Path, "/admin/api/flush"):
+		base = "/admin/settings"
+	}
+	return base + "?flash=" + flash
 }
 
 func activeSection(path string) string {
@@ -231,4 +284,56 @@ func readJSON(r *http.Request, v any) error {
 	dec := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)
+}
+
+func readJSONOrForm(r *http.Request, v any) error {
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+		return readJSON(r, v)
+	}
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	rv := reflect.ValueOf(v).Elem()
+	t := rv.Type()
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		name := strings.Split(field.Tag.Get("json"), ",")[0]
+		if name == "" || name == "-" {
+			continue
+		}
+		vals, ok := r.Form[name]
+		if !ok || len(vals) == 0 {
+			continue
+		}
+		fv := rv.Field(i)
+		if !fv.CanSet() {
+			continue
+		}
+		val := vals[0]
+		switch fv.Kind() {
+		case reflect.String:
+			fv.SetString(val)
+		case reflect.Bool:
+			fv.SetBool(val == "on" || val == "1" || val == "true")
+		case reflect.Int:
+			if n, err := strconv.Atoi(val); err == nil {
+				fv.SetInt(int64(n))
+			}
+		case reflect.Ptr:
+			switch fv.Type().Elem().Kind() {
+			case reflect.String:
+				if val != "" {
+					fv.Set(reflect.ValueOf(&val))
+				}
+			case reflect.Bool:
+				b := val == "on" || val == "1" || val == "true"
+				fv.Set(reflect.ValueOf(&b))
+			case reflect.Int:
+				if n, err := strconv.Atoi(val); err == nil {
+					fv.Set(reflect.ValueOf(&n))
+				}
+			}
+		}
+	}
+	return nil
 }
