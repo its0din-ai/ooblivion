@@ -280,7 +280,7 @@ func (s *Server) handleFlush(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	var total, saved, today int64
-	_ = s.db.QueryRow("SELECT COUNT(*) FROM requests").Scan(&total)
+	_ = s.db.QueryRow("SELECT total_captured FROM stats WHERE id = 1").Scan(&total)
 	_ = s.db.QueryRow("SELECT COUNT(*) FROM requests WHERE saved = 1").Scan(&saved)
 	start := time.Now().UTC().Format("2006-01-02T00:00:00Z")
 	_ = s.db.QueryRow("SELECT COUNT(*) FROM requests WHERE created_at >= ?", start).Scan(&today)

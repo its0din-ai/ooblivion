@@ -75,6 +75,7 @@ func (s *Store) Store(r *http.Request) (models.Request, error) {
 	if err != nil {
 		return req, err
 	}
+	_, _ = s.db.Exec("UPDATE stats SET total_captured = total_captured + 1 WHERE id = 1")
 	return req, nil
 }
 

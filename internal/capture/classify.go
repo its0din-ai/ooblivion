@@ -3,6 +3,7 @@ package capture
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"ooblivion/internal/matcher"
 	"ooblivion/internal/models"
@@ -115,12 +116,23 @@ func buildAlert(req models.Request, ruleName, publicURL string) string {
 	if req.Query != "" {
 		line += "?" + req.Query
 	}
-	link := fmt.Sprintf("View: /admin/requests/%d", req.ID)
+	endpoint := strings.ReplaceAll(line, "`", "\\`")
+
+	var view string
 	if publicURL != "" {
-		link = fmt.Sprintf("View: %s/admin/requests/%d", publicURL, req.ID)
+		view = fmt.Sprintf(
+			"[%s/admin/requests/%d](%s/admin/requests/%d)",
+			telegram.EscapeMD(publicURL), req.ID, publicURL, req.ID,
+		)
+	} else {
+		view = telegram.EscapeMD(fmt.Sprintf("/admin/requests/%d", req.ID))
 	}
+
 	return fmt.Sprintf(
-		"ooblivion alert - %s\n%s\n%s\n%s",
-		ruleName, line, req.CreatedAt, link,
+		"*OOBlivion Alert*\n\nAlert Name: %s\nTime: %s\n\n`%s`\n\nView Url: %s",
+		telegram.EscapeMD(ruleName),
+		telegram.EscapeMD(req.CreatedAt),
+		endpoint,
+		view,
 	)
 }

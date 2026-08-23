@@ -13,7 +13,7 @@
     <a class="btn" href="/admin/requests">View requests</a>
     <a class="btn" href="/admin/scopes">Manage scopes</a>
     <a class="btn" href="/admin/notifications">Manage alerts</a>
-    <button class="btn btn-ghost" id="flush-now">Flush now</button>
+    <a class="btn" href="/admin/settings">Settings</a>
   </div>
 </section>
 <script>
@@ -30,11 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
         "last flush: " + (s.last_flush_at ? formatHumanTime(s.last_flush_at) : "never");
     })
     .catch((e) => toast(e.message));
-  document.getElementById("flush-now").addEventListener("click", async () => {
-    const data = await api("/admin/api/flush", { method: "POST" });
-    toast("flushed " + data.deleted + " requests");
-    location.reload();
-  });
 });
 </script>
 {{end}}

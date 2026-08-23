@@ -13,6 +13,32 @@ import (
 	"ooblivion/internal/logx"
 )
 
+// EscapeMD escapes MarkdownV2 special characters for Telegram.
+func EscapeMD(text string) string {
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`_`, `\_`,
+		`*`, `\*`,
+		`[`, `\[`,
+		`]`, `\]`,
+		`(`, `\(`,
+		`)`, `\)`,
+		`~`, `\~`,
+		"`", "\\`",
+		`>`, `\>`,
+		`#`, `\#`,
+		`+`, `\+`,
+		`-`, `\-`,
+		`=`, `\=`,
+		`|`, `\|`,
+		`{`, `\{`,
+		`}`, `\}`,
+		`.`, `\.`,
+		`!`, `\!`,
+	)
+	return replacer.Replace(text)
+}
+
 type Job struct {
 	RuleID    int64
 	RequestID int64
@@ -70,7 +96,7 @@ func (s *Sender) SendTest(chatID string) error {
 	if chatID == "" {
 		return fmt.Errorf("telegram chat id not set")
 	}
-	return s.post(chatID, "ooblivion test message - telegram notifications are working", 0, 0, "")
+	return s.post(chatID, EscapeMD("ooblivion test message - telegram notifications are working"), 0, 0, "")
 }
 
 func (s *Sender) send(j Job, chatID string) {
@@ -87,6 +113,7 @@ func (s *Sender) post(chatID, text string, ruleID, requestID int64, ruleName str
 	payload := map[string]any{
 		"chat_id":                  chatID,
 		"text":                     text,
+		"parse_mode":               "MarkdownV2",
 		"disable_web_page_preview": true,
 	}
 	if s.threadID != "" {
