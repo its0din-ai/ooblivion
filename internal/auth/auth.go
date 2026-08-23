@@ -195,22 +195,3 @@ func splitHostPort(addr string) (string, string, error) {
 	}
 	return addr, "", nil
 }
-
-func NewCSRFToken() (string, error) {
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(raw), nil
-}
-
-const CSRFHeader = "X-CSRF-Token"
-
-func CSRFValid(r *http.Request) bool {
-	cookie, err := r.Cookie("oob_csrf")
-	if err != nil {
-		return false
-	}
-	sent := r.Header.Get(CSRFHeader)
-	return subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(sent)) == 1
-}

@@ -1,10 +1,3 @@
-function csrf() {
-  const meta = document.querySelector('meta[name="csrf"]');
-  if (meta && meta.content) return meta.content;
-  const m = document.cookie.match(/(?:^|;\s*)oob_csrf=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : "";
-}
-
 function formatISOLocal(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
@@ -51,7 +44,7 @@ function syncThemeIcons() {
 }
 
 async function api(path, opts = {}) {
-  const headers = Object.assign({ "X-CSRF-Token": csrf() }, opts.headers || {});
+  const headers = Object.assign({}, opts.headers || {});
   if (opts.body && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }

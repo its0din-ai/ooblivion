@@ -154,7 +154,8 @@ View: https://ooblivion.acme.corp/admin/requests/123
 - Logout revokes the token through a database denylist; password changes
   revoke all outstanding tokens.
 - HttpOnly, SameSite=Strict cookies; the Secure flag is set behind TLS.
-- CSRF protection on all mutating admin endpoints.
+- Origin-header validation on all mutating admin endpoints (blocks cross-site
+  mutations without tokens), plus SameSite=Strict cookies.
 - Login rate limiting.
 - Request bodies are capped and over-size bodies are flagged as truncated.
 - Admin traffic is never captured, so operator credentials do not enter the
@@ -167,7 +168,7 @@ cmd/ooblivion/        entrypoint, server wiring, host gate
 internal/config/      env loading and validation
 internal/db/          SQLite open, WAL, embedded migrations
 internal/models/      shared data structures
-internal/auth/        argon2, JWT HS512, denylist, CSRF
+internal/auth/        argon2, JWT HS512, denylist
 internal/capture/     request store, scopes, notification evaluation
 internal/matcher/     rule matching engine
 internal/scheduler/   flush and pruning jobs

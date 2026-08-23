@@ -91,7 +91,6 @@ code=$(curl -s -o /dev/null -w "%{http_code}" -c "$JAR" -X POST "$BASE/admin/api
   -H "Content-Type: application/json" -d "{\"password\":\"$ADMIN_PASSWORD\"}")
 check "correct password logs in" test "$code" = "200"
 
-CSRF="$(python3 -c "import re; print(re.search(r'oob_csrf\s+(\S+)', open('$JAR').read()).group(1))")"
 
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" "$BASE/admin/api/stats")
 check "session cookie authenticated" test "$code" = "200"
@@ -144,22 +143,22 @@ d=json.load(open('$TMP/xff.json'))
 item=[i for i in d['items'] if i.get('Path')=='/e2e-xff'][0]
 sys.exit(0 if item.get('SourceIP')=='203.0.113.42' else 1)"
 
-# --- CSRF enforcement ----------------------------------------------------
-say "CSRF"
+# --- origin enforcement -------------------------------------------------
+say "origin"
 ID=$(api "/admin/api/requests?q=/e2e-GET" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
 print([i for i in d['items'] if i.get('Path')=='/e2e-GET'][0]['ID'])")
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X POST "$BASE/admin/api/requests/$ID/save")
-check "mutation without CSRF token rejected" test "$code" = "403"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" -X POST "$BASE/admin/api/requests/$ID/save")
-check "mutation with CSRF token accepted" test "$code" = "200"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" -X POST "$BASE/admin/api/requests/$ID/unsave")
-check "unsave works" test "$code" = "200"
+check "mutation without Origin header accepted" test "$code" = "200"
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "Origin: https://evil.example" -X POST "$BASE/admin/api/requests/$ID/save")
+check "mutation with foreign Origin rejected" test "$code" = "403"
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "Origin: $BASE" -X POST "$BASE/admin/api/requests/$ID/unsave")
+check "mutation with same-origin accepted" test "$code" = "200"
 
 # --- scopes + auto-save --------------------------------------------------
 say "scopes"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -H "Content-Type: application/json" -X POST "$BASE/admin/api/scopes" \
   -d '{"name":"e2e-saved","match_on":"query","match_type":"contains","pattern":"e2e-save-me","enabled":true,"priority":10}')
 check "create scope" test "$code" = "200"
@@ -173,7 +172,7 @@ check "scope auto-saves matching request" test "$saved" -ge 1
 
 # --- notifications -------------------------------------------------------
 say "notifications"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -H "Content-Type: application/json" -X POST "$BASE/admin/api/notifications" \
   -d '{"name":"e2e-alert","match_on":"path","match_type":"contains","pattern":"e2e-alert","enabled":true}')
 check "create notification rule" test "$code" = "200"
@@ -181,13 +180,13 @@ check "create notification rule" test "$code" = "200"
 RID=$(api "/admin/api/notifications" | python3 -c "
 import sys,json
 print(json.load(sys.stdin)[0]['ID'])")
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -X POST "$BASE/admin/api/notifications/$RID/test")
 check "test notification without chat id rejected" test "$code" = "400"
 
 # --- settings ------------------------------------------------------------
 say "settings"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -H "Content-Type: application/json" -X PUT "$BASE/admin/api/settings" \
   -d '{"public_url":"https://e2e.example","retention_days":45,"auto_flush_enabled":true}')
 check "update settings" test "$code" = "200"
@@ -200,7 +199,7 @@ check "dashboard stats endpoint" test "$code" = "200"
 
 # --- flush ---------------------------------------------------------------
 say "flush"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -X POST "$BASE/admin/api/flush")
 check "manual flush accepted" test "$code" = "200"
 after=$(api "/admin/api/requests?saved=1" | python3 -c "
@@ -214,7 +213,7 @@ check "unsaved data removed by flush" test "$unsaved" = "0"
 
 # --- password change + revocation ----------------------------------------
 say "password change"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -H "Content-Type: application/json" -X POST "$BASE/admin/api/password" \
   -d "{\"current\":\"$ADMIN_PASSWORD\",\"new\":\"$NEW_PASSWORD\"}")
 check "change password" test "$code" = "200"
@@ -224,7 +223,6 @@ check "old token revoked after password change" test "$code" = "401"
 
 curl -s -o /dev/null -c "$JAR" -X POST "$BASE/admin/api/login" \
   -H "Content-Type: application/json" -d "{\"password\":\"$NEW_PASSWORD\"}"
-CSRF="$(python3 -c "import re; print(re.search(r'oob_csrf\s+(\S+)', open('$JAR').read()).group(1))")"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" "$BASE/admin/api/stats")
 check "new password logs in" test "$code" = "200"
 
@@ -247,7 +245,7 @@ check "Content-Security-Policy present" bash -c "echo '$hdr' | grep -qi '^Conten
 
 # --- logout --------------------------------------------------------------
 say "logout"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \
   -X POST "$BASE/admin/api/logout")
 check "logout succeeds" test "$code" = "200"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" "$BASE/admin/api/stats")

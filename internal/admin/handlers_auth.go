@@ -50,15 +50,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	csrf, err := auth.NewCSRFToken()
-	if err != nil {
-		s.logger.Errorf("csrf token: %v", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server error"})
-		return
-	}
-
 	setCookie(w, r, cookieName, token, s.cfg.SessionTTL*3600, true)
-	setCookie(w, r, csrfName, csrf, s.cfg.SessionTTL*3600, false)
 	s.logAudit("login", "admin logged in", ip)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -71,7 +63,6 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	clearCookie(w, r, cookieName)
-	clearCookie(w, r, csrfName)
 	s.logAudit("logout", "admin logged out", auth.ClientIP(r))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
