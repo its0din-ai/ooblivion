@@ -1,0 +1,29 @@
+# env
+.env
+
+# secrets, keys, credentials
+*.pem
+*.key
+*.p12
+*.pfx
+
+# build artifacts
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# go
+vendor/
+
+# local data
+data/*
+!data/.gitkeep
+*.db
+*.db-shm
+*.db-wal
+
+# OS
+.DS_Store
+resources/

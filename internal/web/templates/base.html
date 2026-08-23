@@ -1,0 +1,81 @@
+{{define "base"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Title}}{{.Title}}{{else}}ooblivion{{end}} - ooblivion</title>
+<link rel="icon" href="/admin/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/admin/static/style.css">
+<script>
+(function () {
+  var t = localStorage.getItem("oob_theme");
+  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+})();
+</script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/admin">
+    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"></circle>
+      <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle>
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4"></path>
+    </svg>
+    ooblivion
+  </a>
+  {{if .Authed}}
+  <nav class="nav" id="nav">
+    <a href="/admin">Home</a>
+    <a href="/admin/requests">Requests</a>
+    <a href="/admin/scopes">Scopes</a>
+    <a href="/admin/notifications">Alerts</a>
+    <a href="/admin/settings">Settings</a>
+    <a href="/admin/audit">Audit</a>
+  </nav>
+  <div class="topbar-actions">
+    <button class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
+      <svg class="icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+      </svg>
+      <svg class="icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+      </svg>
+    </button>
+    <button class="btn btn-ghost" id="logout">Logout</button>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 6h18M3 12h18M3 18h18"></path>
+      </svg>
+    </button>
+  </div>
+  {{end}}
+</header>
+<main class="container">
+{{template "content" .}}
+</main>
+<div id="toast" class="toast" hidden></div>
+<div id="modal" class="modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-message">
+    <p id="modal-message" class="modal-message"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel" type="button">Cancel</button>
+      <button class="btn btn-danger" id="modal-ok" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+<script src="/admin/static/app.js"></script>
+{{if .Authed}}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("logout");
+  if (btn) btn.addEventListener("click", async () => {
+    await api("/admin/api/logout", { method: "POST" });
+    location.href = "/admin/login";
+  });
+});
+</script>
+{{end}}
+</body>
+</html>
+{{end}}

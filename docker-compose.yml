@@ -1,0 +1,39 @@
+# ooblivion deployment (Caddy runs on the host, NOT in Docker)
+#
+# Before first run:
+#   1. cp .env.example .env  and fill JWT_SECRET (>=64 bytes), ADMIN_PASSWORD (>=16 chars)
+#   2. Set ADMIN_HOST to your PUBLIC admin domain, e.g. ADMIN_HOST=ooblivion.acme.corp
+#      (the Host header seen by the app is the proxy hostname, not 127.0.0.1)
+#   3. Optionally set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID
+#   4. On the host: use Caddyfile.example and point it at 127.0.0.1:8080
+#   5. docker compose up -d --build
+#
+# The ooblivion port is exposed to the host so the host Caddy can reach it.
+# Data (SQLite) is persisted in the ooblivion_data volume. It survives rebuilds and restarts.
+
+services:
+  ooblivion:
+    build: .
+    image: ooblivion:local
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # container-correct overrides; everything else (JWT_SECRET, ADMIN_PASSWORD,
+      # ADMIN_HOST, telegram, ...) comes from .env
+      OOB_LISTEN_ADDR: ":8080"
+      DATABASE_PATH: /app/data/ooblivion.db
+    ports:
+      # exposed to the host for Caddy (host Caddy reverse_proxy 127.0.0.1:8080)
+      - "8080:8080"
+    volumes:
+      - ooblivion_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/admin/login"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  ooblivion_data:

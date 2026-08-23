@@ -1,0 +1,14 @@
+.env
+.git
+.gitignore
+data/
+bin/
+resources/
+*.db
+*.db-shm
+*.db-wal
+Dockerfile
+docker-compose.yml
+Caddyfile
+Caddyfile.example
+.dockerignore

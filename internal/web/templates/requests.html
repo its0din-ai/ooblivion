@@ -1,0 +1,70 @@
+{{define "content"}}
+<section class="panel">
+  <h1>Requests <span class="muted">({{.Total}})</span></h1>
+  <form class="row filter-bar" method="get" action="/admin/requests">
+    <input type="search" name="q" value="{{.Q}}" placeholder="search path, query, body, host, ua">
+    <select name="method">
+      <option value="">all methods</option>
+      {{$m := .Method}}
+      {{range .Methods}}
+      <option value="{{.}}" {{if eq $m .}}selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+    <select name="saved">
+      <option value="">saved: any</option>
+      <option value="1" {{if eq .Saved "1"}}selected{{end}}>saved</option>
+      <option value="0" {{if eq .Saved "0"}}selected{{end}}>not saved</option>
+    </select>
+    <button class="btn" type="submit">Filter</button>
+  </form>
+</section>
+
+<section class="panel">
+  {{if .Items}}
+  {{template "pagination" .Pagination}}
+  <div class="req-list">
+    {{range .Items}}
+    <div class="req-row {{if .Saved}}req-saved{{end}}">
+      <a class="req-main" href="/admin/requests/{{.ID}}">
+        <span class="req-method">{{.Method}}</span>
+        <span class="req-target">{{.Host}}{{.Path}}{{if .Query}}?<span class="req-query">{{.Query}}</span>{{end}}</span>
+      </a>
+      <span class="req-meta">
+        <span class="tag {{if .Saved}}tag-saved{{end}}">{{if .Saved}}saved{{else}}raw{{end}}</span>
+        {{.CreatedAt}}
+      </span>
+    </div>
+    {{end}}
+  </div>
+  {{template "pagination" .Pagination}}
+  {{else}}
+  <p class="muted">no requests captured</p>
+  {{end}}
+</section>
+<script>
+sessionStorage.setItem("oob_back_list", location.href);
+</script>
+{{end}}
+
+{{define "pagination"}}
+<nav class="pagination" aria-label="pagination">
+  {{if .HasPrev}}
+  <a class="btn btn-ghost" href="{{.FirstHref}}">first</a>
+  <a class="btn btn-ghost" href="{{.PrevHref}}">prev</a>
+  {{else}}
+  <span class="btn btn-ghost disabled">first</span>
+  <span class="btn btn-ghost disabled">prev</span>
+  {{end}}
+  {{range .Numbers}}
+  <a class="btn btn-ghost {{if .Active}}active{{end}}" href="{{.Href}}">{{.Number}}</a>
+  {{end}}
+  {{if .HasNext}}
+  <a class="btn btn-ghost" href="{{.NextHref}}">next</a>
+  <a class="btn btn-ghost" href="{{.LastHref}}">last</a>
+  {{else}}
+  <span class="btn btn-ghost disabled">next</span>
+  <span class="btn btn-ghost disabled">last</span>
+  {{end}}
+  <span class="muted">page {{.Page}} / {{.Pages}}</span>
+</nav>
+{{end}}

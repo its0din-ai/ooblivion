@@ -1,0 +1,33 @@
+# ooblivion multi-domain Caddy reverse proxy (Caddy runs on the HOST)
+#
+# Usage (host Caddy, e.g. /etc/caddy/Caddyfile):
+#   - Point it at the exposed Docker port: OOB_UPSTREAM=127.0.0.1:8080
+#   - ADMIN_HOST in .env must be the public admin domain below.
+#
+# All domains below route to the single ooblivion instance. Only the hostname
+# listed in ADMIN_HOST (.env) exposes /admin/**. Every other host is captured
+# and answered with 200 empty.
+#
+# Caddy terminates TLS automatically and forwards X-Forwarded-For / -Proto / -Host,
+# which ooblivion uses for the admin host gate.
+
+{$OOB_UPSTREAM:127.0.0.1:8080}
+
+# Admin console host. Must match ADMIN_HOST in .env
+ooblivion.acme.corp {
+	reverse_proxy {$OOB_UPSTREAM}
+}
+
+# Capture hosts (everything else is captured; /admin/** here returns 200 empty)
+acme.corp {
+	reverse_proxy {$OOB_UPSTREAM}
+}
+
+*.acme.corp {
+	reverse_proxy {$OOB_UPSTREAM}
+}
+
+# Add more capture domains as needed, e.g.:
+# example.net {
+# 	reverse_proxy {$OOB_UPSTREAM}
+# }

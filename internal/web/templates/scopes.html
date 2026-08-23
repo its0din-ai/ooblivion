@@ -1,0 +1,93 @@
+{{define "content"}}
+<section class="panel">
+  <h1>Scopes</h1>
+  <p class="muted">Requests matching a scope are saved into the saved bucket and never auto-flushed.</p>
+</section>
+
+<section class="panel card">
+  <h2>Add scope</h2>
+  <form class="stack rule-form" id="scope-add" action="/admin/api/scopes" method="POST">
+    {{template "rulefields" dict "Name" "" "MatchOn" "query" "MatchType" "contains" "Pattern" "saved" "HeaderName" "" "Priority" 0 "Enabled" true "Button" "Create scope"}}
+  </form>
+</section>
+
+{{range .Items}}
+<section class="panel card">
+  <form class="stack rule-form" data-id="{{.ID}}" action="/admin/api/scopes/{{.ID}}" method="PUT">
+    <div class="row between">
+      <h2>{{.Name}}</h2>
+      <button type="button" class="btn btn-danger rule-delete">Delete</button>
+    </div>
+    {{template "rulefields" dict "Name" .Name "MatchOn" .MatchOn "MatchType" .MatchType "Pattern" .Pattern "HeaderName" (headerName .HeaderName) "Priority" .Priority "Enabled" .Enabled "Button" "Update scope"}}
+  </form>
+</section>
+{{end}}
+{{end}}
+
+{{define "rulefields"}}
+  <label for="name">Name</label>
+  <input type="text" name="name" value="{{.Name}}" required>
+  <div class="grid2">
+    <div>
+      <label for="match_on">Match on</label>
+      <select name="match_on">
+        {{$mo := .MatchOn}}
+        {{range matchOns}}
+        <option value="{{.}}" {{if eq $mo .}}selected{{end}}>{{.}}</option>
+        {{end}}
+      </select>
+    </div>
+    <div>
+      <label for="match_type">Match type</label>
+      <select name="match_type">
+        {{$mt := .MatchType}}
+        {{range matchTypes}}
+        <option value="{{.}}" {{if eq $mt .}}selected{{end}}>{{.}}</option>
+        {{end}}
+      </select>
+    </div>
+  </div>
+  <label for="pattern">Pattern</label>
+  <input type="text" name="pattern" value="{{.Pattern}}" required>
+  <label for="header_name">Header name (if match on = header)</label>
+  <input type="text" name="header_name" value="{{.HeaderName}}">
+  <div class="grid2">
+    <div>
+      <label for="priority">Priority</label>
+      <input type="number" name="priority" value="{{.Priority}}">
+    </div>
+    <div class="check">
+      <input type="checkbox" name="enabled" id="enabled" {{if .Enabled}}checked{{end}}>
+      <label for="enabled">Enabled</label>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">{{.Button}}</button>
+{{end}}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  for (const form of document.querySelectorAll(".rule-form")) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const payload = {
+        name: fd.get("name"),
+        match_on: fd.get("match_on"),
+        match_type: fd.get("match_type"),
+        pattern: fd.get("pattern"),
+        header_name: fd.get("header_name") || null,
+        priority: parseInt(fd.get("priority") || "0", 10),
+        enabled: fd.get("enabled") === "on",
+      };
+      await api(form.action, { method: form.dataset.method || form.dataset.id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      location.reload();
+    });
+    const del = form.querySelector(".rule-delete");
+    if (del) del.addEventListener("click", async () => {
+      if (!(await confirmDialog("delete this scope?"))) return;
+      await api(form.action, { method: "DELETE" });
+      location.reload();
+    });
+  }
+});
+</script>

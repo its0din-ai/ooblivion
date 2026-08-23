@@ -1,0 +1,75 @@
+{{define "content"}}
+<section class="panel">
+  <div class="row between">
+    <h1>{{.Request.Method}} {{.Request.Host}}{{.Request.Path}}{{if .Request.Query}}?{{.Request.Query}}{{end}}</h1>
+    <div class="row">
+      {{if .Request.Saved}}
+      <button class="btn" data-action="unsave" data-id="{{.Request.ID}}">Unsave</button>
+      {{else}}
+      <button class="btn" data-action="save" data-id="{{.Request.ID}}">Save</button>
+      {{end}}
+      <button class="btn btn-danger" data-action="delete" data-id="{{.Request.ID}}">Delete</button>
+      <button class="btn btn-ghost" id="back-btn" type="button">Back</button>
+    </div>
+  </div>
+  <dl class="kv">
+    <dt>id</dt><dd>{{.Request.ID}}</dd>
+    <dt>method</dt><dd>{{.Request.Method}}</dd>
+    <dt>scheme</dt><dd>{{.Request.Scheme}}</dd>
+    <dt>host</dt><dd>{{.Request.Host}}</dd>
+    <dt>path</dt><dd>{{.Request.Path}}</dd>
+    <dt>query</dt><dd>{{.Request.Query}}</dd>
+    <dt>http_version</dt><dd>{{.Request.HTTPVersion}}</dd>
+    <dt>source_ip</dt><dd>{{.Request.SourceIP}}</dd>
+    <dt>remote_addr</dt><dd>{{.Request.RemoteAddr}}</dd>
+    <dt>forwarded_for</dt><dd>{{.Request.ForwardedFor}}</dd>
+    <dt>user_agent</dt><dd>{{.Request.UserAgent}}</dd>
+    <dt>content_type</dt><dd>{{.Request.ContentType}}</dd>
+    <dt>created_at</dt><dd>{{.Request.CreatedAt}}</dd>
+    <dt>saved</dt><dd>{{.Request.Saved}}</dd>
+    <dt>scope_id</dt><dd>{{if .Request.ScopeID}}{{.Request.ScopeID}}{{else}}-{{end}}</dd>
+    <dt>notified</dt><dd>{{.Request.Notified}}</dd>
+    <dt>body_truncated</dt><dd>{{.Request.BodyTruncated}}</dd>
+  </dl>
+  <h2>Headers</h2>
+  <pre class="code">{{range $k, $v := .Headers}}{{$k}}: {{$v}}
+{{end}}</pre>
+  <h2>Body</h2>
+  <pre class="code">{{if .Request.Body}}{{.Request.Body}}{{else}}&lt;empty&gt;{{end}}</pre>
+</section>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const id = {{.Request.ID}};
+  for (const btn of document.querySelectorAll("[data-action]")) {
+    btn.addEventListener("click", async () => {
+      const action = btn.dataset.action;
+      const endpoint = { save: "save", unsave: "unsave", delete: "" }[action];
+      if (action === "delete" && !(await confirmDialog("delete this request?"))) return;
+      const path = endpoint
+        ? `/admin/api/requests/${id}/${endpoint}`
+        : `/admin/api/requests/${id}`;
+      const method = action === "delete" ? "DELETE" : "POST";
+      await api(path, { method });
+      if (action === "delete") {
+        location.href = "/admin/requests";
+        return;
+      }
+      location.reload();
+    });
+  }
+  const backBtn = document.getElementById("back-btn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      const back = sessionStorage.getItem("oob_back_list");
+      if (back) {
+        location.href = back;
+      } else if (window.history.length > 1) {
+        history.back();
+      } else {
+        location.href = "/admin/requests";
+      }
+    });
+  }
+});
+</script>
+{{end}}

@@ -1,0 +1,17 @@
+{{define "content"}}
+<section class="panel">
+  <h1>Audit</h1>
+  {{if .Items}}
+  <div class="req-list">
+    {{range .Items}}
+    <div class="req-row">
+      <span class="req-main"><span class="req-method">{{.Action}}</span>{{.Detail}}</span>
+      <span class="req-meta"><span class="tag">{{if .IP}}{{.IP}}{{else}}system{{end}}</span> {{.CreatedAt}}</span>
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <p class="muted">no audit entries</p>
+  {{end}}
+</section>
+{{end}}
