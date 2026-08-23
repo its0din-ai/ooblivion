@@ -1,7 +1,23 @@
 {{define "content"}}
 <section class="panel">
   <h1>Audit</h1>
+  <form class="row filter-bar" method="get" action="/admin/audit">
+    <input type="text" name="ip" value="{{.IP}}" placeholder="ip">
+    <select name="action">
+      <option value="">all actions</option>
+      {{$a := .Action}}
+      {{range .Actions}}
+      <option value="{{.}}" {{if eq $a .}}selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+    <label class="check"><input type="checkbox" name="failed" id="failed" {{if .Failed}}checked{{end}}> failed only</label>
+    <button class="btn" type="submit">Filter</button>
+  </form>
+</section>
+
+<section class="panel">
   {{if .Items}}
+  {{template "pagination" .Pagination}}
   <div class="req-list">
     {{range .Items}}
     <div class="req-row">
@@ -10,6 +26,7 @@
     </div>
     {{end}}
   </div>
+  {{template "pagination" .Pagination}}
   {{else}}
   <p class="muted">no audit entries</p>
   {{end}}

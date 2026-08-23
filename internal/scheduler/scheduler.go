@@ -55,6 +55,7 @@ func (s *Scheduler) RunOnce() {
 		s.logger.Errorf("scheduler denylist prune error: %v", err)
 	}
 	s.pruneNotificationLog()
+	s.pruneAuditLog()
 }
 
 func (s *Scheduler) RetentionDays() int {
@@ -127,6 +128,13 @@ func (s *Scheduler) Flush(manual bool, ip string) (int64, error) {
 func (s *Scheduler) pruneNotificationLog() {
 	if _, err := s.db.Exec("DELETE FROM notification_log WHERE id NOT IN (SELECT id FROM notification_log ORDER BY id DESC LIMIT 5000)"); err != nil {
 		s.logger.Errorf("scheduler notification log prune error: %v", err)
+	}
+}
+
+func (s *Scheduler) pruneAuditLog() {
+	boundary := time.Now().UTC().AddDate(0, -3, 0).Format(time.RFC3339)
+	if _, err := s.db.Exec("DELETE FROM audit_log WHERE created_at < ?", boundary); err != nil {
+		s.logger.Errorf("scheduler audit log prune error: %v", err)
 	}
 }
 

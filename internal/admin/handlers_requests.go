@@ -36,9 +36,12 @@ func (s *Server) handleRequestsPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
-	pagination := s.buildPagination(filters, total)
-	if pagination["Page"].(int) != filters.page {
-		filters.page = pagination["Page"].(int)
+	pagination := buildPagination(filters.page, filters.perPage(), total, func(p int) string {
+		return fmt.Sprintf("/admin/requests?q=%s&method=%s&saved=%s&host=%s&page=%d",
+			url.QueryEscape(filters.q), url.QueryEscape(filters.method), url.QueryEscape(filters.saved), url.QueryEscape(filters.host), p)
+	})
+	if pagination.Page != filters.page {
+		filters.page = pagination.Page
 		items, total, err = s.queryRequests(filters)
 		if err != nil {
 			s.logger.Errorf("query requests: %v", err)
@@ -70,20 +73,28 @@ type pageLink struct {
 	Href   string
 }
 
-func (s *Server) buildPagination(f requestFilters, total int64) map[string]any {
-	perPage := f.perPage()
+type paginationData struct {
+	Page      int
+	Pages     int
+	HasPrev   bool
+	HasNext   bool
+	FirstHref string
+	PrevHref  string
+	NextHref  string
+	LastHref  string
+	Numbers   []pageLink
+}
+
+func buildPagination(page, perPage int, total int64, href func(int) string) paginationData {
 	pages := int((total + int64(perPage) - 1) / int64(perPage))
 	if pages < 1 {
 		pages = 1
 	}
-	page := f.page
+	if page < 1 {
+		page = 1
+	}
 	if page > pages {
 		page = pages
-	}
-
-	href := func(p int) string {
-		return fmt.Sprintf("/admin/requests?q=%s&method=%s&saved=%s&host=%s&page=%d",
-			url.QueryEscape(f.q), url.QueryEscape(f.method), url.QueryEscape(f.saved), url.QueryEscape(f.host), p)
 	}
 
 	start := page - 2
@@ -103,16 +114,16 @@ func (s *Server) buildPagination(f requestFilters, total int64) map[string]any {
 		numbers = append(numbers, pageLink{Number: n, Active: n == page, Href: href(n)})
 	}
 
-	return map[string]any{
-		"Page":      page,
-		"Pages":     pages,
-		"HasPrev":   page > 1,
-		"HasNext":   page < pages,
-		"FirstHref": href(1),
-		"PrevHref":  href(maxInt(page-1, 1)),
-		"NextHref":  href(minInt(page+1, pages)),
-		"LastHref":  href(pages),
-		"Numbers":   numbers,
+	return paginationData{
+		Page:      page,
+		Pages:     pages,
+		HasPrev:   page > 1,
+		HasNext:   page < pages,
+		FirstHref: href(1),
+		PrevHref:  href(maxInt(page-1, 1)),
+		NextHref:  href(minInt(page+1, pages)),
+		LastHref:  href(pages),
+		Numbers:   numbers,
 	}
 }
 
@@ -329,7 +340,7 @@ type requestFilters struct {
 }
 
 func (f requestFilters) perPage() int {
-	return 50
+	return 20
 }
 
 func (s *Server) queryRequests(f requestFilters) ([]models.Request, int64, error) {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"ooblivion/internal/matcher"
 	"ooblivion/internal/models"
@@ -111,12 +112,21 @@ func ruleFrom(matchOn, matchType, pattern string, headerName *string) matcher.Ru
 	return r
 }
 
+func formatTimeID(ts string) string {
+	t, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
+		return ts
+	}
+	return t.Local().Format("02/01/2006 15.04.05")
+}
+
 func buildAlert(req models.Request, ruleName, publicURL string) string {
 	line := fmt.Sprintf("%s %s%s", req.Method, req.Host, req.Path)
 	if req.Query != "" {
 		line += "?" + req.Query
 	}
 	endpoint := strings.ReplaceAll(line, "`", "\\`")
+	ip := strings.ReplaceAll(req.SourceIP, "`", "\\`")
 
 	var view string
 	if publicURL != "" {
@@ -128,10 +138,16 @@ func buildAlert(req models.Request, ruleName, publicURL string) string {
 		view = telegram.EscapeMD(fmt.Sprintf("/admin/requests/%d", req.ID))
 	}
 
+	ipLine := ""
+	if req.SourceIP != "" {
+		ipLine = fmt.Sprintf("IP: `%s`\n", ip)
+	}
+
 	return fmt.Sprintf(
-		"*OOBlivion Alert*\n\nAlert Name: %s\nTime: %s\n\n`%s`\n\nView Url: %s",
+		"*OOBlivion Alert*\n\nAlert Name: %s\nTime: %s\n\n%s`%s`\n\nView Url: %s",
 		telegram.EscapeMD(ruleName),
-		telegram.EscapeMD(req.CreatedAt),
+		telegram.EscapeMD(formatTimeID(req.CreatedAt)),
+		ipLine,
 		endpoint,
 		view,
 	)

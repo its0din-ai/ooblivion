@@ -1,8 +1,11 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"ooblivion/internal/models"
 	"ooblivion/internal/scheduler"
@@ -76,8 +79,46 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAuditPage(w http.ResponseWriter, r *http.Request) {
+	const perPage = 20
+	q := r.URL.Query()
+	page := atoiDefault(q.Get("page"), 1)
+	fip := q.Get("ip")
+	fact := q.Get("action")
+	ffailed := q.Get("failed")
+
+	where := []string{}
+	args := []any{}
+	if fip != "" {
+		where = append(where, "ip LIKE ?")
+		args = append(args, "%"+fip+"%")
+	}
+	if fact != "" {
+		where = append(where, "action = ?")
+		args = append(args, fact)
+	}
+	if ffailed == "on" {
+		where = append(where, "action LIKE '%failed%'")
+	}
+	clause := ""
+	if len(where) > 0 {
+		clause = " WHERE " + strings.Join(where, " AND ")
+	}
+
+	var total int64
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM audit_log"+clause, args...).Scan(&total); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	pagination := buildPagination(page, perPage, total, func(p int) string {
+		return fmt.Sprintf("/admin/audit?ip=%s&action=%s&failed=%s&page=%d",
+			url.QueryEscape(fip), url.QueryEscape(fact), url.QueryEscape(ffailed), p)
+	})
+
+	queryArgs := append(args, perPage, (pagination.Page-1)*perPage)
 	rows, err := s.db.Query(
-		`SELECT id, actor, action, detail, ip, created_at FROM audit_log ORDER BY id DESC LIMIT 200`)
+		`SELECT id, actor, action, detail, ip, created_at FROM audit_log`+clause+
+			` ORDER BY id DESC LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
@@ -91,5 +132,25 @@ func (s *Server) handleAuditPage(w http.ResponseWriter, r *http.Request) {
 		}
 		items = append(items, e)
 	}
-	s.render(w, r, "audit", map[string]any{"Title": "Audit", "Items": items})
+
+	actions := []string{}
+	if actRows, err := s.db.Query("SELECT DISTINCT action FROM audit_log ORDER BY action"); err == nil {
+		defer actRows.Close()
+		for actRows.Next() {
+			var a string
+			if actRows.Scan(&a) == nil {
+				actions = append(actions, a)
+			}
+		}
+	}
+
+	s.render(w, r, "audit", map[string]any{
+		"Title":      "Audit",
+		"Items":      items,
+		"Pagination": pagination,
+		"IP":         fip,
+		"Action":     fact,
+		"Failed":     ffailed == "on",
+		"Actions":    actions,
+	})
 }

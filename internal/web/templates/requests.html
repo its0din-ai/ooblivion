@@ -51,26 +51,3 @@
 sessionStorage.setItem("oob_back_list", location.href);
 </script>
 {{end}}
-
-{{define "pagination"}}
-<nav class="pagination" aria-label="pagination">
-  {{if .HasPrev}}
-  <a class="btn btn-ghost" href="{{.FirstHref}}">first</a>
-  <a class="btn btn-ghost" href="{{.PrevHref}}">prev</a>
-  {{else}}
-  <span class="btn btn-ghost disabled">first</span>
-  <span class="btn btn-ghost disabled">prev</span>
-  {{end}}
-  {{range .Numbers}}
-  <a class="btn btn-ghost {{if .Active}}active{{end}}" href="{{.Href}}">{{.Number}}</a>
-  {{end}}
-  {{if .HasNext}}
-  <a class="btn btn-ghost" href="{{.NextHref}}">next</a>
-  <a class="btn btn-ghost" href="{{.LastHref}}">last</a>
-  {{else}}
-  <span class="btn btn-ghost disabled">next</span>
-  <span class="btn btn-ghost disabled">last</span>
-  {{end}}
-  <span class="muted">page {{.Page}} / {{.Pages}}</span>
-</nav>
-{{end}}
