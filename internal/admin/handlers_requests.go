@@ -46,7 +46,7 @@ func (s *Server) handleRequestsPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	s.render(w, "requests", map[string]any{
+	s.render(w, r, "requests", map[string]any{
 		"Title":      "Requests",
 		"Items":      items,
 		"Total":      total,
@@ -138,7 +138,7 @@ func (s *Server) handleDetailPage(w http.ResponseWriter, r *http.Request) {
 	}
 	var headers map[string]string
 	_ = json.Unmarshal([]byte(req.RequestHeaders), &headers)
-	s.render(w, "detail", map[string]any{
+	s.render(w, r, "detail", map[string]any{
 		"Title":   fmt.Sprintf("Request #%d", id),
 		"Request": req,
 		"Headers": headers,

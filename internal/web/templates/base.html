@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Title}}{{.Title}}{{else}}ooblivion{{end}} - ooblivion</title>
+<meta name="csrf" content="{{.CSRF}}">
 <link rel="icon" href="/admin/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/admin/static/style.css">
+<link rel="stylesheet" href="/admin/static/style.css?v={{.Version}}">
 <script>
 (function () {
   var t = localStorage.getItem("oob_theme");
@@ -64,7 +65,8 @@
     </div>
   </div>
 </div>
-<script src="/admin/static/app.js"></script>
+<script src="/admin/static/app.js?v={{.Version}}"></script>
+<footer class="footer"><span class="muted">ooblivion v{{.Version}}</span></footer>
 {{if .Authed}}
 <script>
 document.addEventListener("DOMContentLoaded", () => {

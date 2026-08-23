@@ -17,6 +17,7 @@ import (
 	"ooblivion/internal/logx"
 	"ooblivion/internal/scheduler"
 	"ooblivion/internal/telegram"
+	"ooblivion/internal/version"
 	"ooblivion/internal/web"
 )
 
@@ -113,8 +114,17 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /admin/api/password", s.auth(s.csrf(s.handleChangePassword)))
 
 	mux.HandleFunc("GET /admin/api/audit", s.auth(s.handleAudit))
+	mux.HandleFunc("GET /admin/api/version", s.auth(s.handleVersion))
 
 	return withSecurityHeaders(mux)
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"version":    version.Version,
+		"commit":     version.Commit,
+		"build_date": version.BuildDate,
+	})
 }
 
 func withSecurityHeaders(next http.Handler) http.Handler {
@@ -122,6 +132,7 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set(
 			"Content-Security-Policy",
 			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'",
@@ -182,7 +193,19 @@ func isAPI(r *http.Request) bool {
 	return len(r.URL.Path) >= 10 && r.URL.Path[:10] == "/admin/api"
 }
 
-func (s *Server) render(w http.ResponseWriter, page string, data map[string]any) {
+func (s *Server) csrfFor(w http.ResponseWriter, r *http.Request) string {
+	if c, err := r.Cookie(csrfName); err == nil && c.Value != "" {
+		return c.Value
+	}
+	token, err := auth.NewCSRFToken()
+	if err != nil {
+		return ""
+	}
+	setCookie(w, r, csrfName, token, s.cfg.SessionTTL*3600, false)
+	return token
+}
+
+func (s *Server) render(w http.ResponseWriter, r *http.Request, page string, data map[string]any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if data == nil {
 		data = map[string]any{}
@@ -190,6 +213,10 @@ func (s *Server) render(w http.ResponseWriter, page string, data map[string]any)
 	if _, ok := data["Authed"]; !ok {
 		data["Authed"] = true
 	}
+	if authed, _ := data["Authed"].(bool); authed {
+		data["CSRF"] = s.csrfFor(w, r)
+	}
+	data["Version"] = version.String()
 	tmpl, ok := s.tmpl[page]
 	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)

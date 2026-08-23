@@ -1,4 +1,6 @@
 function csrf() {
+  const meta = document.querySelector('meta[name="csrf"]');
+  if (meta && meta.content) return meta.content;
   const m = document.cookie.match(/(?:^|;\s*)oob_csrf=([^;]+)/);
   return m ? decodeURIComponent(m[1]) : "";
 }

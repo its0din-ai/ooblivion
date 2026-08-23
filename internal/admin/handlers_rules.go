@@ -63,7 +63,7 @@ func (s *Server) handleScopesPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
-	s.render(w, "scopes", map[string]any{"Title": "Scopes", "Items": items})
+	s.render(w, r, "scopes", map[string]any{"Title": "Scopes", "Items": items})
 }
 
 func (s *Server) handleNotificationsPage(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +72,7 @@ func (s *Server) handleNotificationsPage(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
-	s.render(w, "notifications", map[string]any{
+	s.render(w, r, "notifications", map[string]any{
 		"Title":   "Notifications",
 		"Items":   items,
 		"Enabled": s.cfg.TelegramToken != "" && s.cfg.TelegramChatID != "",

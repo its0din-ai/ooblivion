@@ -12,7 +12,7 @@ import (
 )
 
 func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "login", map[string]any{"Title": "Login", "Authed": false})
+	s.render(w, r, "login", map[string]any{"Title": "Login", "Authed": false})
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {

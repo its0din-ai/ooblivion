@@ -84,7 +84,7 @@ host proxy can reach it.
 ```sh
 cp .env.example .env
 # set ADMIN_HOST to the public admin domain, for example ooblivion.acme.corp
-docker compose up -d --build
+OOB_VERSION=$(git rev-parse --short HEAD) docker compose up -d --build
 ```
 
 The SQLite database lives in the `ooblivion_data` Docker volume and persists
@@ -185,6 +185,14 @@ go build ./...
 go vet ./...
 staticcheck ./...
 gofmt -l .
+```
+
+Build with the git commit hash embedded (shown in the footer and
+`/admin/api/version`, and used to version static asset URLs so deploys bust
+browser/CDN caches):
+
+```sh
+make build
 ```
 
 Run the end-to-end test suite (self-starts an isolated instance on port 8180

@@ -9,11 +9,11 @@ import (
 )
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "dashboard", map[string]any{"Title": "Dashboard"})
+	s.render(w, r, "dashboard", map[string]any{"Title": "Dashboard"})
 }
 
 func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, "settings", map[string]any{
+	s.render(w, r, "settings", map[string]any{
 		"Title":          "Settings",
 		"PublicURL":      scheduler.ReadSetting(s.db, "public_url"),
 		"RetentionDays":  s.sched.RetentionDays(),
@@ -90,5 +90,5 @@ func (s *Server) handleAuditPage(w http.ResponseWriter, r *http.Request) {
 		}
 		items = append(items, e)
 	}
-	s.render(w, "audit", map[string]any{"Title": "Audit", "Items": items})
+	s.render(w, r, "audit", map[string]any{"Title": "Audit", "Items": items})
 }

@@ -13,7 +13,11 @@
 
 services:
   ooblivion:
-    build: .
+    build:
+      context: .
+      args:
+        VERSION: ${OOB_VERSION:-dev}
+        BUILDDATE: ${OOB_BUILDDATE:-}
     image: ooblivion:local
     restart: unless-stopped
     env_file:

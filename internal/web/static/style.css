@@ -342,6 +342,13 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 
 .error { color: var(--danger); }
 
+.footer {
+  text-align: center;
+  padding: 12px;
+  border-top: 1px dashed var(--border);
+}
+.footer .muted { font-size: 0.75rem; }
+
 .modal-overlay {
   position: fixed;
   inset: 0;

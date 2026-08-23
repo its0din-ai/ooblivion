@@ -23,6 +23,7 @@ import (
 	"ooblivion/internal/models"
 	"ooblivion/internal/scheduler"
 	"ooblivion/internal/telegram"
+	"ooblivion/internal/version"
 )
 
 func main() {
@@ -32,6 +33,7 @@ func main() {
 	}
 
 	logger := logx.New(cfg.LogLevel, os.Stderr, "ooblivion ")
+	logger.Infof("starting ooblivion %s", version.String())
 
 	handle, err := db.Open(cfg.DatabasePath)
 	if err != nil {
