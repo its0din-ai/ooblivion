@@ -1,6 +1,6 @@
 {{define "content"}}
 <section class="panel login-card">
-  <h1>ooblivion</h1>
+  <h1>[oob]livion</h1>
   <p class="muted">out-of-band capture console</p>
   <form id="login-form" class="stack">
     <label for="password">Password</label>
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const data = await res.json();
     if (!res.ok) {
-      err.textContent = data.error || "login failed";
+      err.textContent = data.error || "you shall not pass!";
       err.hidden = false;
       return;
     }

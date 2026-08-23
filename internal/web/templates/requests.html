@@ -24,6 +24,13 @@
       <option value="1" {{if eq .Saved "1"}}selected{{end}}>saved</option>
       <option value="0" {{if eq .Saved "0"}}selected{{end}}>not saved</option>
     </select>
+    <select name="country">
+      <option value="">all countries</option>
+      {{$c := .Country}}
+      {{range .Countries}}
+      <option value="{{.}}" {{if eq $c .}}selected{{end}}>{{flag .}} {{.}}</option>
+      {{end}}
+    </select>
     <button class="btn" type="submit">Filter</button>
   </form>
 </section>

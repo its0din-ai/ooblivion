@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{if .Title}}{{.Title}}{{else}}ooblivion{{end}} - ooblivion</title>
+<title>{{if .Title}}{{.Title}}{{else}}[oob]livion{{end}} - [oob]livion</title>
 <link rel="icon" href="/admin/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/admin/static/style.css?v={{.Version}}">
 <script>
@@ -22,7 +22,7 @@
       <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle>
       <path d="M12 3v4M12 17v4M3 12h4M17 12h4"></path>
     </svg>
-    ooblivion
+    [oob]livion
   </a>
   {{if .Authed}}
   <nav class="nav" id="nav">
@@ -84,7 +84,7 @@
   </div>
 </div>
 <script src="/admin/static/app.js?v={{.Version}}"></script>
-<footer class="footer"><span class="muted">ooblivion {{.Version}}</span></footer>
+<footer class="footer"><span class="muted">[oob]livion {{.Version}}</span></footer>
 {{if .Authed}}
 <script>
 document.addEventListener("DOMContentLoaded", () => {

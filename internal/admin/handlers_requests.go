@@ -27,6 +27,7 @@ func (s *Server) handleRequestsPage(w http.ResponseWriter, r *http.Request) {
 		method:  q.Get("method"),
 		host:    q.Get("host"),
 		saved:   q.Get("saved"),
+		country: q.Get("country"),
 		scopeID: q.Get("scope_id"),
 		page:    atoiDefault(q.Get("page"), 1),
 	}
@@ -37,8 +38,8 @@ func (s *Server) handleRequestsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pagination := buildPagination(filters.page, filters.perPage(), total, func(p int) string {
-		return fmt.Sprintf("/admin/requests?q=%s&method=%s&saved=%s&host=%s&page=%d",
-			url.QueryEscape(filters.q), url.QueryEscape(filters.method), url.QueryEscape(filters.saved), url.QueryEscape(filters.host), p)
+		return fmt.Sprintf("/admin/requests?q=%s&method=%s&saved=%s&host=%s&country=%s&page=%d",
+			url.QueryEscape(filters.q), url.QueryEscape(filters.method), url.QueryEscape(filters.saved), url.QueryEscape(filters.host), url.QueryEscape(filters.country), p)
 	})
 	if pagination.Page != filters.page {
 		filters.page = pagination.Page
@@ -53,16 +54,22 @@ func (s *Server) handleRequestsPage(w http.ResponseWriter, r *http.Request) {
 	if herr != nil {
 		s.logger.Errorf("query hosts: %v", herr)
 	}
+	countries, cerr := s.distinctCountries()
+	if cerr != nil {
+		s.logger.Errorf("query countries: %v", cerr)
+	}
 	s.render(w, r, "requests", map[string]any{
 		"Title":      "Requests",
 		"Items":      items,
 		"Total":      total,
 		"Methods":    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"},
 		"Hosts":      hosts,
+		"Countries":  countries,
 		"Q":          filters.q,
 		"Method":     filters.method,
 		"Host":       filters.host,
 		"Saved":      filters.saved,
+		"Country":    filters.country,
 		"Pagination": pagination,
 	})
 }
@@ -144,6 +151,23 @@ func (s *Server) distinctHosts() ([]string, error) {
 	return hosts, rows.Err()
 }
 
+func (s *Server) distinctCountries() ([]string, error) {
+	rows, err := s.db.Query("SELECT DISTINCT ip_country FROM requests WHERE ip_country != '' ORDER BY ip_country ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	countries := []string{}
+	for rows.Next() {
+		var c string
+		if err := rows.Scan(&c); err != nil {
+			return nil, err
+		}
+		countries = append(countries, c)
+	}
+	return countries, rows.Err()
+}
+
 func maxInt(a, b int) int {
 	if a > b {
 		return a
@@ -185,6 +209,7 @@ func (s *Server) handleListRequests(w http.ResponseWriter, r *http.Request) {
 		method:  q.Get("method"),
 		host:    q.Get("host"),
 		saved:   q.Get("saved"),
+		country: q.Get("country"),
 		scopeID: q.Get("scope_id"),
 		page:    atoiDefault(q.Get("page"), 1),
 	}
@@ -335,6 +360,7 @@ type requestFilters struct {
 	method  string
 	host    string
 	saved   string
+	country string
 	scopeID string
 	page    int
 }
@@ -372,6 +398,10 @@ func (s *Server) queryRequests(f requestFilters) ([]models.Request, int64, error
 	if f.saved == "1" || f.saved == "0" {
 		where = append(where, "saved = ?")
 		args = append(args, f.saved)
+	}
+	if f.country != "" {
+		where = append(where, "ip_country = ?")
+		args = append(args, f.country)
 	}
 	if f.scopeID != "" {
 		where = append(where, "scope_id = ?")

@@ -76,7 +76,7 @@ row_count() { # row_count <exact-path>
 # --- unauthenticated access ----------------------------------------------
 say "auth gate"
 title=$(curl -s "$BASE/admin/login" | grep -o '<title>[^<]*' | head -1)
-check "login page loads" test "$title" = "<title>Login - ooblivion"
+check "login page loads" test "$title" = "<title>Login - [oob]livion"
 
 code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/admin/settings")
 check "unauthenticated /admin redirects to login" test "$code" = "302"
@@ -142,6 +142,14 @@ import json,sys
 d=json.load(open('$TMP/xff.json'))
 item=[i for i in d['items'] if i.get('Path')=='/e2e-xff'][0]
 sys.exit(0 if item.get('SourceIP')=='203.0.113.42' else 1)"
+
+curl -s -o /dev/null "$BASE/e2e-country" -H "Cf-Ipcountry: US"
+api "/admin/api/requests?country=US" > "$TMP/country.json"
+check "country filter returns matching requests" python3 -c "
+import json,sys
+d=json.load(open('$TMP/country.json'))
+print('US rows:', d['total'])
+sys.exit(0 if d['total'] >= 1 and all(i.get('IPCountry')=='US' for i in d['items']) else 1)"
 
 # --- mutation auth (JWT-only) -------------------------------------------
 say "mutation auth"
