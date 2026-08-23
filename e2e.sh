@@ -143,18 +143,18 @@ d=json.load(open('$TMP/xff.json'))
 item=[i for i in d['items'] if i.get('Path')=='/e2e-xff'][0]
 sys.exit(0 if item.get('SourceIP')=='203.0.113.42' else 1)"
 
-# --- origin enforcement -------------------------------------------------
-say "origin"
+# --- mutation auth (JWT-only) -------------------------------------------
+say "mutation auth"
 ID=$(api "/admin/api/requests?q=/e2e-GET" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
 print([i for i in d['items'] if i.get('Path')=='/e2e-GET'][0]['ID'])")
+code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/admin/api/requests/$ID/save")
+check "mutation without session rejected" test "$code" = "401"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X POST "$BASE/admin/api/requests/$ID/save")
-check "mutation without Origin header accepted" test "$code" = "200"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "Origin: https://evil.example" -X POST "$BASE/admin/api/requests/$ID/save")
-check "mutation with foreign Origin rejected" test "$code" = "403"
-code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "Origin: $BASE" -X POST "$BASE/admin/api/requests/$ID/unsave")
-check "mutation with same-origin accepted" test "$code" = "200"
+check "mutation with session accepted" test "$code" = "200"
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -X POST "$BASE/admin/api/requests/$ID/unsave")
+check "unsave works" test "$code" = "200"
 
 # --- scopes + auto-save --------------------------------------------------
 say "scopes"

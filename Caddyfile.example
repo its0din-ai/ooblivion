@@ -10,6 +10,13 @@
 #
 # Caddy terminates TLS automatically and forwards X-Forwarded-For / -Proto / -Host,
 # which ooblivion uses for the admin host gate.
+#
+# WILDCARD TLS NOTE: a "*.zone" site needs a wildcard certificate, which Caddy
+# can only obtain via a DNS-01 challenge (requires a DNS provider plugin such as
+# caddy-dns/cloudflare) OR by letting each subdomain issue its own cert via
+# HTTP-01 (works automatically once the subdomain's DNS resolves to this server).
+# If you see TLS errors or no traffic for one zone while another works, check
+# the wildcard DNS record + cert first. The app itself captures any host.
 
 {$OOB_UPSTREAM:127.0.0.1:8080}
 
@@ -24,6 +31,14 @@ acme.corp {
 }
 
 *.acme.corp {
+	reverse_proxy {$OOB_UPSTREAM}
+}
+
+acme.net {
+	reverse_proxy {$OOB_UPSTREAM}
+}
+
+*.acme.net {
 	reverse_proxy {$OOB_UPSTREAM}
 }
 

@@ -155,8 +155,8 @@ View: https://ooblivion.acme.corp/admin/requests/123
 - Logout revokes the token through a database denylist; password changes
   revoke all outstanding tokens.
 - HttpOnly, SameSite=Strict cookies; the Secure flag is set behind TLS.
-- Origin-header validation on all mutating admin endpoints (blocks cross-site
-  mutations without tokens), plus SameSite=Strict cookies.
+- All admin mutations require a valid JWT session; SameSite=Strict cookies
+  keep the session browser-only.
 - Login rate limiting.
 - Request bodies are capped and over-size bodies are flagged as truncated.
 - Admin traffic is never captured, so operator credentials do not enter the

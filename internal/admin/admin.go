@@ -8,9 +8,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -82,7 +80,7 @@ func (s *Server) Routes() http.Handler {
 
 	mux.HandleFunc("GET /admin/", s.auth(s.handleDashboard))
 	mux.HandleFunc("GET /admin", s.auth(s.handleDashboard))
-	mux.HandleFunc("POST /admin/api/logout", s.auth(s.origin(s.handleLogout)))
+	mux.HandleFunc("POST /admin/api/logout", s.auth(s.handleLogout))
 
 	mux.HandleFunc("GET /admin/requests", s.auth(s.handleRequestsPage))
 	mux.HandleFunc("GET /admin/requests/{id}", s.auth(s.handleDetailPage))
@@ -94,26 +92,26 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/api/stats", s.auth(s.handleStats))
 	mux.HandleFunc("GET /admin/api/requests", s.auth(s.handleListRequests))
 	mux.HandleFunc("GET /admin/api/requests/{id}", s.auth(s.handleGetRequest))
-	mux.HandleFunc("POST /admin/api/requests/{id}/save", s.auth(s.origin(s.handleSaveRequest)))
-	mux.HandleFunc("POST /admin/api/requests/{id}/unsave", s.auth(s.origin(s.handleUnsaveRequest)))
-	mux.HandleFunc("DELETE /admin/api/requests/{id}", s.auth(s.origin(s.handleDeleteRequest)))
-	mux.HandleFunc("POST /admin/api/requests/bulk_delete", s.auth(s.origin(s.handleBulkDelete)))
-	mux.HandleFunc("POST /admin/api/flush", s.auth(s.origin(s.handleFlush)))
+	mux.HandleFunc("POST /admin/api/requests/{id}/save", s.auth(s.handleSaveRequest))
+	mux.HandleFunc("POST /admin/api/requests/{id}/unsave", s.auth(s.handleUnsaveRequest))
+	mux.HandleFunc("DELETE /admin/api/requests/{id}", s.auth(s.handleDeleteRequest))
+	mux.HandleFunc("POST /admin/api/requests/bulk_delete", s.auth(s.handleBulkDelete))
+	mux.HandleFunc("POST /admin/api/flush", s.auth(s.handleFlush))
 
 	mux.HandleFunc("GET /admin/api/scopes", s.auth(s.handleListScopes))
-	mux.HandleFunc("POST /admin/api/scopes", s.auth(s.origin(s.handleCreateScope)))
-	mux.HandleFunc("PUT /admin/api/scopes/{id}", s.auth(s.origin(s.handleUpdateScope)))
-	mux.HandleFunc("DELETE /admin/api/scopes/{id}", s.auth(s.origin(s.handleDeleteScope)))
+	mux.HandleFunc("POST /admin/api/scopes", s.auth(s.handleCreateScope))
+	mux.HandleFunc("PUT /admin/api/scopes/{id}", s.auth(s.handleUpdateScope))
+	mux.HandleFunc("DELETE /admin/api/scopes/{id}", s.auth(s.handleDeleteScope))
 
 	mux.HandleFunc("GET /admin/api/notifications", s.auth(s.handleListRules))
-	mux.HandleFunc("POST /admin/api/notifications", s.auth(s.origin(s.handleCreateRule)))
-	mux.HandleFunc("PUT /admin/api/notifications/{id}", s.auth(s.origin(s.handleUpdateRule)))
-	mux.HandleFunc("DELETE /admin/api/notifications/{id}", s.auth(s.origin(s.handleDeleteRule)))
-	mux.HandleFunc("POST /admin/api/notifications/{id}/test", s.auth(s.origin(s.handleTestRule)))
+	mux.HandleFunc("POST /admin/api/notifications", s.auth(s.handleCreateRule))
+	mux.HandleFunc("PUT /admin/api/notifications/{id}", s.auth(s.handleUpdateRule))
+	mux.HandleFunc("DELETE /admin/api/notifications/{id}", s.auth(s.handleDeleteRule))
+	mux.HandleFunc("POST /admin/api/notifications/{id}/test", s.auth(s.handleTestRule))
 
 	mux.HandleFunc("GET /admin/api/settings", s.auth(s.handleGetSettings))
-	mux.HandleFunc("PUT /admin/api/settings", s.auth(s.origin(s.handlePutSettings)))
-	mux.HandleFunc("POST /admin/api/password", s.auth(s.origin(s.handleChangePassword)))
+	mux.HandleFunc("PUT /admin/api/settings", s.auth(s.handlePutSettings))
+	mux.HandleFunc("POST /admin/api/password", s.auth(s.handleChangePassword))
 
 	mux.HandleFunc("GET /admin/api/audit", s.auth(s.handleAudit))
 	mux.HandleFunc("GET /admin/api/version", s.auth(s.handleVersion))
@@ -155,36 +153,6 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
-}
-
-func (s *Server) origin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !originAllowed(r) {
-			writeJSON(w, http.StatusForbidden, map[string]any{"error": "invalid origin"})
-			return
-		}
-		next(w, r)
-	}
-}
-
-func originAllowed(r *http.Request) bool {
-	origin := r.Header.Get("Origin")
-	if origin == "" {
-		return true
-	}
-	u, err := url.Parse(origin)
-	if err != nil || u.Host == "" {
-		return false
-	}
-	scheme := "http"
-	if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
-		scheme = "https"
-	}
-	host := r.Host
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	return u.Hostname() == host && u.Scheme == scheme
 }
 
 func (s *Server) tokenVersion() int {
