@@ -1,15 +1,17 @@
-function formatISOLocal(iso) {
+const tsFormat = new Intl.DateTimeFormat("id-ID", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+function formatHumanTime(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  const pad = (n) => String(n).padStart(2, "0");
-  const off = -d.getTimezoneOffset();
-  const sign = off >= 0 ? "+" : "-";
-  const abs = Math.abs(off);
-  return (
-    d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
-    "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) +
-    sign + pad(Math.floor(abs / 60)) + ":" + pad(abs % 60)
-  );
+  return tsFormat.format(d);
 }
 
 function currentTheme() {
@@ -100,7 +102,7 @@ function confirmDialog(msg, okLabel = "Confirm") {
 
 document.addEventListener("DOMContentLoaded", () => {
   for (const el of document.querySelectorAll("[data-ts]")) {
-    const local = formatISOLocal(el.dataset.ts);
+    const local = formatHumanTime(el.dataset.ts);
     if (local) el.textContent = local;
   }
   const toggle = document.getElementById("nav-toggle");
@@ -128,4 +130,4 @@ window.toast = toast;
 window.confirmDialog = confirmDialog;
 window.toggleTheme = toggleTheme;
 window.applyTheme = applyTheme;
-window.formatISOLocal = formatISOLocal;
+window.formatHumanTime = formatHumanTime;

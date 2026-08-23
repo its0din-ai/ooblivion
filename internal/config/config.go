@@ -11,31 +11,33 @@ import (
 )
 
 type Config struct {
-	ListenAddr     string
-	DatabasePath   string
-	JWTSecret      []byte
-	AdminPassword  string
-	TelegramToken  string
-	TelegramChatID string
-	LogLevel       string
-	MaxBodyBytes   int64
-	SessionTTL     int
-	AdminHosts     []string
+	ListenAddr       string
+	DatabasePath     string
+	JWTSecret        []byte
+	AdminPassword    string
+	TelegramToken    string
+	TelegramChatID   string
+	TelegramThreadID string
+	LogLevel         string
+	MaxBodyBytes     int64
+	SessionTTL       int
+	AdminHosts       []string
 }
 
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		ListenAddr:     getEnv("OOB_LISTEN_ADDR", ":8080"),
-		DatabasePath:   getEnv("DATABASE_PATH", "data/ooblivion.db"),
-		JWTSecret:      []byte(os.Getenv("JWT_SECRET")),
-		AdminPassword:  os.Getenv("ADMIN_PASSWORD"),
-		TelegramToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
-		TelegramChatID: os.Getenv("TELEGRAM_CHAT_ID"),
-		LogLevel:       getEnv("LOG_LEVEL", "info"),
-		MaxBodyBytes:   1048576,
-		SessionTTL:     12,
+		ListenAddr:       getEnv("OOB_LISTEN_ADDR", ":8080"),
+		DatabasePath:     getEnv("DATABASE_PATH", "data/ooblivion.db"),
+		JWTSecret:        []byte(os.Getenv("JWT_SECRET")),
+		AdminPassword:    os.Getenv("ADMIN_PASSWORD"),
+		TelegramToken:    os.Getenv("TELEGRAM_BOT_TOKEN"),
+		TelegramChatID:   os.Getenv("TELEGRAM_CHAT_ID"),
+		TelegramThreadID: os.Getenv("TELEGRAM_THREAD_ID"),
+		LogLevel:         getEnv("LOG_LEVEL", "info"),
+		MaxBodyBytes:     1048576,
+		SessionTTL:       12,
 	}
 
 	if v := os.Getenv("MAX_BODY_BYTES"); v != "" {

@@ -45,7 +45,7 @@ func main() {
 		logger.Fatalf("auth: %v", err)
 	}
 
-	tg := telegram.New(cfg.TelegramToken, cfg.TelegramChatID, handle, logger)
+	tg := telegram.New(cfg.TelegramToken, cfg.TelegramChatID, cfg.TelegramThreadID, handle, logger)
 	sched := scheduler.New(handle, 30, logger)
 	classifier := capture.NewClassifier(handle, tg)
 

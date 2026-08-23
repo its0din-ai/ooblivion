@@ -71,6 +71,7 @@ values:
 | `ADMIN_PASSWORD` | Initial admin password (min 16 chars), used only on first boot. |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token. Empty disables notifications. |
 | `TELEGRAM_CHAT_ID` | Telegram chat id that receives alerts. |
+| `TELEGRAM_THREAD_ID` | Optional topic/thread id within the chat for supergroups with topics. |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, or `error`. |
 | `MAX_BODY_BYTES` | Capture body size cap in bytes, default 1048576. |
 

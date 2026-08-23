@@ -21,22 +21,24 @@ type Job struct {
 }
 
 type Sender struct {
-	token  string
-	chatID string
-	db     *sql.DB
-	jobs   chan Job
-	logger *logx.Logger
-	client *http.Client
+	token    string
+	chatID   string
+	threadID string
+	db       *sql.DB
+	jobs     chan Job
+	logger   *logx.Logger
+	client   *http.Client
 }
 
-func New(token, chatID string, db *sql.DB, logger *logx.Logger) *Sender {
+func New(token, chatID, threadID string, db *sql.DB, logger *logx.Logger) *Sender {
 	s := &Sender{
-		token:  token,
-		chatID: chatID,
-		db:     db,
-		jobs:   make(chan Job, 256),
-		logger: logger,
-		client: &http.Client{Timeout: 10 * time.Second},
+		token:    token,
+		chatID:   chatID,
+		threadID: threadID,
+		db:       db,
+		jobs:     make(chan Job, 256),
+		logger:   logger,
+		client:   &http.Client{Timeout: 10 * time.Second},
 	}
 	if token != "" {
 		go s.run()
@@ -86,6 +88,9 @@ func (s *Sender) post(chatID, text string, ruleID, requestID int64, ruleName str
 		"chat_id":                  chatID,
 		"text":                     text,
 		"disable_web_page_preview": true,
+	}
+	if s.threadID != "" {
+		payload["message_thread_id"] = s.threadID
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {

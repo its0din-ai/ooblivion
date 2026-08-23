@@ -14,13 +14,14 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSettingsPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "settings", map[string]any{
-		"Title":          "Settings",
-		"PublicURL":      scheduler.ReadSetting(s.db, "public_url"),
-		"RetentionDays":  s.sched.RetentionDays(),
-		"AutoFlush":      scheduler.ReadSetting(s.db, "auto_flush_enabled") != "0",
-		"TelegramToken":  s.cfg.TelegramToken != "",
-		"TelegramChatID": s.cfg.TelegramChatID,
-		"LastFlushAt":    s.sched.LastFlushAt(),
+		"Title":            "Settings",
+		"PublicURL":        scheduler.ReadSetting(s.db, "public_url"),
+		"RetentionDays":    s.sched.RetentionDays(),
+		"AutoFlush":        scheduler.ReadSetting(s.db, "auto_flush_enabled") != "0",
+		"TelegramToken":    s.cfg.TelegramToken != "",
+		"TelegramChatID":   s.cfg.TelegramChatID,
+		"TelegramThreadID": s.cfg.TelegramThreadID,
+		"LastFlushAt":      s.sched.LastFlushAt(),
 	})
 }
 
