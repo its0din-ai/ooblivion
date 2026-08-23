@@ -348,7 +348,7 @@ func (s *Server) queryRequests(f requestFilters) ([]models.Request, int64, error
 	args = append(args, limit, offset)
 	rows, err := s.db.Query(
 		`SELECT id, method, scheme, host, path, query, http_version, request_headers, body,
-		 body_truncated, source_ip, remote_addr, forwarded_for, user_agent, content_type,
+		 body_truncated, source_ip, remote_addr, forwarded_for, user_agent, content_type, COALESCE(ip_country, ''),
 		 saved, scope_id, notified, created_at
 		 FROM requests`+clause+` ORDER BY id DESC LIMIT ? OFFSET ?`, args...)
 	if err != nil {
@@ -364,7 +364,7 @@ func (s *Server) queryRequests(f requestFilters) ([]models.Request, int64, error
 		if err := rows.Scan(
 			&req.ID, &req.Method, &req.Scheme, &req.Host, &req.Path, &req.Query, &req.HTTPVersion,
 			&req.RequestHeaders, &req.Body, &truncated, &req.SourceIP, &req.RemoteAddr,
-			&req.ForwardedFor, &req.UserAgent, &req.ContentType, &saved, &scopeID, &notified,
+			&req.ForwardedFor, &req.UserAgent, &req.ContentType, &req.IPCountry, &saved, &scopeID, &notified,
 			&req.CreatedAt,
 		); err != nil {
 			return nil, 0, err
@@ -386,12 +386,12 @@ func (s *Server) getRequest(id int64) (models.Request, error) {
 	var scopeID sqlNullInt64
 	err := s.db.QueryRow(
 		`SELECT id, method, scheme, host, path, query, http_version, request_headers, body,
-		 body_truncated, source_ip, remote_addr, forwarded_for, user_agent, content_type,
+		 body_truncated, source_ip, remote_addr, forwarded_for, user_agent, content_type, COALESCE(ip_country, ''),
 		 saved, scope_id, notified, created_at FROM requests WHERE id = ?`, id,
 	).Scan(
 		&req.ID, &req.Method, &req.Scheme, &req.Host, &req.Path, &req.Query, &req.HTTPVersion,
 		&req.RequestHeaders, &req.Body, &truncated, &req.SourceIP, &req.RemoteAddr,
-		&req.ForwardedFor, &req.UserAgent, &req.ContentType, &saved, &scopeID, &notified,
+		&req.ForwardedFor, &req.UserAgent, &req.ContentType, &req.IPCountry, &saved, &scopeID, &notified,
 		&req.CreatedAt,
 	)
 	if err != nil {

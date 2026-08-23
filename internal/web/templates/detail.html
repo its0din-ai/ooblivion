@@ -20,12 +20,13 @@
     <dt>path</dt><dd>{{.Request.Path}}</dd>
     <dt>query</dt><dd>{{.Request.Query}}</dd>
     <dt>http_version</dt><dd>{{.Request.HTTPVersion}}</dd>
-    <dt>source_ip</dt><dd>{{.Request.SourceIP}}</dd>
+    <dt>source_ip</dt><dd>{{if .Request.SourceIP}}<a href="https://ipinfo.io/{{.Request.SourceIP}}" target="_blank" rel="noopener noreferrer">{{.Request.SourceIP}}</a>{{else}}-{{end}}</dd>
     <dt>remote_addr</dt><dd>{{.Request.RemoteAddr}}</dd>
     <dt>forwarded_for</dt><dd>{{.Request.ForwardedFor}}</dd>
     <dt>user_agent</dt><dd>{{.Request.UserAgent}}</dd>
+    <dt>ip_country</dt><dd>{{if .Request.IPCountry}}{{flag .Request.IPCountry}} {{.Request.IPCountry}}{{else}}-{{end}}</dd>
     <dt>content_type</dt><dd>{{.Request.ContentType}}</dd>
-    <dt>created_at</dt><dd>{{.Request.CreatedAt}}</dd>
+    <dt>created_at</dt><dd><time data-ts="{{.Request.CreatedAt}}">{{.Request.CreatedAt}}</time></dd>
     <dt>saved</dt><dd>{{.Request.Saved}}</dd>
     <dt>scope_id</dt><dd>{{if .Request.ScopeID}}{{.Request.ScopeID}}{{else}}-{{end}}</dd>
     <dt>notified</dt><dd>{{.Request.Notified}}</dd>

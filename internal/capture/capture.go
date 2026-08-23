@@ -56,16 +56,17 @@ func (s *Store) Store(r *http.Request) (models.Request, error) {
 		ForwardedFor:   forwardedIPs(r),
 		UserAgent:      r.Header.Get("User-Agent"),
 		ContentType:    r.Header.Get("Content-Type"),
+		IPCountry:      r.Header.Get("Cf-Ipcountry"),
 		CreatedAt:      now,
 	}
 
 	res, err := s.db.Exec(
 		`INSERT INTO requests (method, scheme, host, path, query, http_version, request_headers,
-		 body, body_truncated, source_ip, remote_addr, forwarded_for, user_agent, content_type, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 body, body_truncated, source_ip, remote_addr, forwarded_for, user_agent, content_type, ip_country, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		req.Method, req.Scheme, req.Host, req.Path, req.Query, req.HTTPVersion, req.RequestHeaders,
 		req.Body, boolToInt(req.BodyTruncated), req.SourceIP, req.RemoteAddr, req.ForwardedFor,
-		req.UserAgent, req.ContentType, req.CreatedAt,
+		req.UserAgent, req.ContentType, req.IPCountry, req.CreatedAt,
 	)
 	if err != nil {
 		return req, fmt.Errorf("store request: %w", err)
@@ -97,7 +98,7 @@ func (s *Store) readBody(r *http.Request) (string, bool) {
 }
 
 func clientIP(r *http.Request) string {
-	if cf := r.Header.Get("CF-Connecting-IP"); cf != "" {
+	if cf := r.Header.Get("Cf-Connecting-Ip"); cf != "" {
 		return strings.TrimSpace(cf)
 	}
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {

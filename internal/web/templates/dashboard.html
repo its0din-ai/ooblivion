@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
       nums[3].textContent = s.scope_count;
       nums[4].textContent = s.rule_count;
       document.getElementById("flush-info").textContent =
-        "last flush: " + (s.last_flush_at || "never");
+        "last flush: " + (s.last_flush_at ? formatISOLocal(s.last_flush_at) : "never");
     })
     .catch((e) => toast(e.message));
   document.getElementById("flush-now").addEventListener("click", async () => {

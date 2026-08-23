@@ -173,7 +173,7 @@ func (r *RateLimiter) Allow(ip string) bool {
 }
 
 func ClientIP(r *http.Request) string {
-	if cf := r.Header.Get("CF-Connecting-IP"); cf != "" {
+	if cf := r.Header.Get("Cf-Connecting-Ip"); cf != "" {
 		return strings.TrimSpace(cf)
 	}
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {

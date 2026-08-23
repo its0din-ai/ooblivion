@@ -278,6 +278,8 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .req-target { overflow-wrap: anywhere; }
 .req-query { color: var(--fg-muted); }
 .req-meta { color: var(--fg-muted); font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
+.req-meta .ip-link { color: var(--fg-muted); }
+.req-meta .ip-link:hover { color: var(--accent); }
 
 .tag {
   border: 1px dashed var(--border);
@@ -288,6 +290,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   color: var(--fg-muted);
 }
 .tag-saved { color: var(--ok); border-color: var(--ok); }
+.flag { font-size: 1rem; line-height: 1; }
 
 .kv {
   display: grid;

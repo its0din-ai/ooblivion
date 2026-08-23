@@ -109,8 +109,11 @@ Caddy terminates TLS and forwards `X-Forwarded-For`, `X-Forwarded-Proto`, and
 `X-Forwarded-Host`, which the app uses to resolve the client IP, scheme, and
 the admin host gate.
 
-The visitor IP is resolved with this precedence: `CF-Connecting-IP`
+The visitor IP is resolved with this precedence: `Cf-Connecting-Ip`
 (Cloudflare) → `X-Forwarded-For` → `X-Real-IP` → remote address.
+
+The Cloudflare country header (`Cf-Ipcountry`) is stored per request and shown
+as a flag on the requests list and detail page.
 
 ## Admin console
 

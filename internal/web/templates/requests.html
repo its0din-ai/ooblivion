@@ -31,7 +31,9 @@
       </a>
       <span class="req-meta">
         <span class="tag {{if .Saved}}tag-saved{{end}}">{{if .Saved}}saved{{else}}raw{{end}}</span>
-        {{.CreatedAt}}
+        {{if .SourceIP}}<a class="ip-link" href="https://ipinfo.io/{{.SourceIP}}" target="_blank" rel="noopener noreferrer">{{.SourceIP}}</a>{{end}}
+        {{if .IPCountry}}<span class="flag" title="{{.IPCountry}}">{{flag .IPCountry}}</span>{{end}}
+        <time data-ts="{{.CreatedAt}}">{{.CreatedAt}}</time>
       </span>
     </div>
     {{end}}

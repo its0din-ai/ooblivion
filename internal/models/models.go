@@ -17,6 +17,7 @@ type Request struct {
 	ForwardedFor   string
 	UserAgent      string
 	ContentType    string
+	IPCountry      string
 	Saved          bool
 	ScopeID        *int64
 	Notified       bool

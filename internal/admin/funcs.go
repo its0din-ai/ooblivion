@@ -1,6 +1,9 @@
 package admin
 
-import "html/template"
+import (
+	"html/template"
+	"strings"
+)
 
 func templateFuncs() template.FuncMap {
 	return template.FuncMap{
@@ -27,7 +30,16 @@ func templateFuncs() template.FuncMap {
 			}
 			return *v
 		},
+		"flag": countryFlag,
 	}
+}
+
+func countryFlag(code string) string {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	if len(code) != 2 {
+		return ""
+	}
+	return string(rune(0x1F1E6)+rune(code[0]-'A')) + string(rune(0x1F1E6)+rune(code[1]-'A'))
 }
 
 type dictKeyError struct{}

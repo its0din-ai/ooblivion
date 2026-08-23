@@ -6,7 +6,7 @@
     {{range .Items}}
     <div class="req-row">
       <span class="req-main"><span class="req-method">{{.Action}}</span>{{.Detail}}</span>
-      <span class="req-meta"><span class="tag">{{if .IP}}{{.IP}}{{else}}system{{end}}</span> {{.CreatedAt}}</span>
+      <span class="req-meta"><span class="tag">{{if .IP}}{{if eq .IP "system"}}system{{else}}<a href="https://ipinfo.io/{{.IP}}" target="_blank" rel="noopener noreferrer">{{.IP}}</a>{{end}}{{else}}system{{end}}</span> <time data-ts="{{.CreatedAt}}">{{.CreatedAt}}</time></span>
     </div>
     {{end}}
   </div>
