@@ -262,6 +262,14 @@ check "non-admin host /admin captured in log" test "$captured" -ge 1
 say "security headers"
 hdr=$(curl -s -D - -o /dev/null "$BASE/admin/login")
 check "X-Content-Type-Options nosniff" bash -c "echo '$hdr' | grep -qi '^X-Content-Type-Options: nosniff'"
+
+# --- CORS -----------------------------------------------------------------
+say "cors"
+chdr=$(curl -s -D - -o /dev/null "$BASE/anything")
+check "CORS allow-origin *" bash -c "echo '$chdr' | grep -qi '^Access-Control-Allow-Origin: \*'"
+check "CORS allow-headers *" bash -c "echo '$chdr' | grep -qi '^Access-Control-Allow-Headers: \*'"
+code=$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$BASE/anything" -H "Origin: https://example.com" -H "Access-Control-Request-Method: POST")
+check "CORS preflight returns 2xx and is captured" test "$code" = "200"
 check "X-Frame-Options DENY" bash -c "echo '$hdr' | grep -qi '^X-Frame-Options: DENY'"
 check "Content-Security-Policy present" bash -c "echo '$hdr' | grep -qi '^Content-Security-Policy:'"
 

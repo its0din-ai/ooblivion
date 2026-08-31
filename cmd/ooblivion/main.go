@@ -72,7 +72,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           root,
+		Handler:           withCORS(root),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      20 * time.Second,
@@ -180,4 +180,15 @@ func subjectFromRequest(req models.Request) matcher.Subject {
 
 func catchAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Access-Control-Allow-Origin", "*")
+		h.Set("Access-Control-Allow-Methods", "*")
+		h.Set("Access-Control-Allow-Headers", "*")
+		h.Set("Access-Control-Expose-Headers", "*")
+		next.ServeHTTP(w, r)
+	})
 }
