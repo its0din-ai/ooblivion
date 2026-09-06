@@ -380,6 +380,12 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 @media (min-width: 640px) { .kv { grid-template-columns: 180px 1fr; } }
 .kv dt { color: var(--fg-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
 .kv dd { margin: 0; overflow-wrap: anywhere; }
+.value-none {
+  color: var(--fg-muted);
+  font-style: italic;
+  opacity: 0.55;
+  text-decoration: line-through;
+}
 
 .code {
   background: var(--bg);

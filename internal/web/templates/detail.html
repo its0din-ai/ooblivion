@@ -15,28 +15,35 @@
   <dl class="kv">
     <dt>id</dt><dd>{{.Request.ID}}</dd>
     <dt>method</dt><dd>{{.Request.Method}}</dd>
-    <dt>scheme</dt><dd>{{.Request.Scheme}}</dd>
-    <dt>host</dt><dd>{{.Request.Host}}</dd>
+    <dt>scheme</dt><dd>{{if .Request.Scheme}}{{.Request.Scheme}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>host</dt><dd>{{if .Request.Host}}{{.Request.Host}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>path</dt><dd>{{.Request.Path}}</dd>
-    <dt>query</dt><dd>{{.Request.Query}}</dd>
-    <dt>http_version</dt><dd>{{.Request.HTTPVersion}}</dd>
-    <dt>source_ip</dt><dd>{{if .Request.SourceIP}}<a href="https://ipinfo.io/{{.Request.SourceIP}}" target="_blank" rel="noopener noreferrer">{{.Request.SourceIP}}</a>{{else}}-{{end}}</dd>
-    <dt>remote_addr</dt><dd>{{.Request.RemoteAddr}}</dd>
-    <dt>forwarded_for</dt><dd>{{.Request.ForwardedFor}}</dd>
-    <dt>user_agent</dt><dd>{{.Request.UserAgent}}</dd>
-    <dt>ip_country</dt><dd>{{if .Request.IPCountry}}{{flag .Request.IPCountry}} {{.Request.IPCountry}}{{else}}-{{end}}</dd>
-    <dt>content_type</dt><dd>{{.Request.ContentType}}</dd>
+    <dt>query</dt><dd>{{if .Request.Query}}{{.Request.Query}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>http_version</dt><dd>{{if .Request.HTTPVersion}}{{.Request.HTTPVersion}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>source_ip</dt><dd>{{if .Request.SourceIP}}<a href="https://ipinfo.io/{{.Request.SourceIP}}" target="_blank" rel="noopener noreferrer">{{.Request.SourceIP}}</a>{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>remote_addr</dt><dd>{{if .Request.RemoteAddr}}{{.Request.RemoteAddr}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>forwarded_for</dt><dd>{{if .Request.ForwardedFor}}{{.Request.ForwardedFor}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>user_agent</dt><dd>{{if .Request.UserAgent}}{{.Request.UserAgent}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>ip_country</dt><dd>{{if .Request.IPCountry}}{{flag .Request.IPCountry}} {{.Request.IPCountry}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>content_type</dt><dd>{{if .Request.ContentType}}{{.Request.ContentType}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>created_at</dt><dd><time data-ts="{{.Request.CreatedAt}}">{{.Request.CreatedAt}}</time></dd>
     <dt>saved</dt><dd>{{.Request.Saved}}</dd>
-    <dt>scope_id</dt><dd>{{if .Request.ScopeID}}{{.Request.ScopeID}}{{else}}-{{end}}</dd>
+    <dt>scope_id</dt><dd>{{if .Request.ScopeID}}{{.Request.ScopeID}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>notified</dt><dd>{{.Request.Notified}}</dd>
     <dt>body_truncated</dt><dd>{{.Request.BodyTruncated}}</dd>
   </dl>
-  <h2>Headers</h2>
-  <pre class="code">{{range $k, $v := .Headers}}{{$k}}: {{$v}}
-{{end}}</pre>
-  <h2>Body</h2>
-  <pre class="code">{{if .Request.Body}}{{.Request.Body}}{{else}}&lt;empty&gt;{{end}}</pre>
+
+  <div class="row between">
+    <h2>Headers</h2>
+  </div>
+  <pre class="code" id="headers-pre">{{if .HeadersPresent}}{{range $k, $v := .Headers}}{{$k}}: {{$v}}
+{{end}}{{else}}<span class="value-none">none</span>{{end}}</pre>
+
+  <div class="row between">
+    <h2>Body</h2>
+    {{if .Request.Body}}<button class="btn btn-ghost" id="copy-body" type="button">Copy</button>{{end}}
+  </div>
+  <pre class="code" id="body-pre">{{if .Request.Body}}{{.Request.Body}}{{else}}<span class="value-none">none</span>{{end}}</pre>
 </section>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -68,6 +75,28 @@ document.addEventListener("DOMContentLoaded", () => {
         history.back();
       } else {
         location.href = "/admin/requests";
+      }
+    });
+  }
+  const copyBtn = document.getElementById("copy-body");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      const text = document.getElementById("body-pre").textContent;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        copyBtn.textContent = "Copied";
+        setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
+      } catch (err) {
+        toast("copy failed");
       }
     });
   }
