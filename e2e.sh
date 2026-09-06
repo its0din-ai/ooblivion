@@ -178,6 +178,25 @@ loc=$(curl -s -D - -o /dev/null -b "$JAR" \
   | tr -d '\r' | awk -F': ' 'tolower($1)=="location"{print $2}')
 check "form POST redirects to scopes with success flash" test "$loc" = "/admin/scopes?flash=success"
 
+# --- bulk delete ---------------------------------------------------------
+say "bulk delete"
+for i in 1 2 3; do curl -s -o /dev/null "$BASE/e2e-bulk-$i"; done
+bulk_ids=$(api "/admin/api/requests?q=/e2e-bulk" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+ids=[str(i['ID']) for i in d['items'] if i.get('Path','').startswith('/e2e-bulk')]
+print(','.join(ids))")
+code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -H "Content-Type: application/json" \
+  -X POST "$BASE/admin/api/requests/bulk_delete" -d "{\"ids\":[${bulk_ids}]}")
+check "bulk delete accepted" test "$code" = "200"
+remaining=$(api "/admin/api/requests?q=/e2e-bulk" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+print(sum(1 for i in d['items'] if i.get('Path','').startswith('/e2e-bulk')))")
+check "bulk deleted requests removed" test "$remaining" = "0"
+nbulk=$(curl -s -b "$JAR" "$BASE/admin/requests" | grep -c 'class="row-select"')
+check "requests page has bulk select checkboxes" test "$nbulk" -ge 1
+
 # --- scopes + auto-save --------------------------------------------------
 say "scopes"
 code=$(curl -s -o /dev/null -w "%{http_code}" -b "$JAR" \

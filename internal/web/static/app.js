@@ -267,6 +267,15 @@ function countryFlag(code) {
     const row = document.createElement("div");
     row.className = "req-row" + (it.Saved ? " req-saved" : "");
 
+    const checkLabel = document.createElement("label");
+    checkLabel.className = "row-check";
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "row-select";
+    check.value = String(it.ID);
+    checkLabel.appendChild(check);
+    row.appendChild(checkLabel);
+
     const a = document.createElement("a");
     a.className = "req-main";
     a.href = "/admin/requests/" + it.ID;
@@ -383,6 +392,7 @@ function countryFlag(code) {
       const local = formatHumanTime(el.dataset.ts);
       if (local) el.textContent = local;
     });
+    document.dispatchEvent(new Event("oob:list-updated"));
   }
 
   function poll() {
@@ -423,4 +433,53 @@ function countryFlag(code) {
   if (localStorage.getItem("oob_live") === "1") {
     start();
   }
+})();
+
+(function () {
+  const list = document.getElementById("req-list");
+  const selectAll = document.getElementById("select-all");
+  const bulkBtn = document.getElementById("bulk-delete");
+  const countEl = document.getElementById("bulk-count");
+  if (!list || !selectAll || !bulkBtn) return;
+
+  function selected() {
+    return Array.from(list.querySelectorAll(".row-select:checked")).map((cb) => cb.value);
+  }
+
+  function update() {
+    const ids = selected();
+    const total = list.querySelectorAll(".row-select").length;
+    selectAll.checked = ids.length > 0 && ids.length === total;
+    selectAll.indeterminate = ids.length > 0 && ids.length < total;
+    bulkBtn.disabled = ids.length === 0;
+    if (countEl) countEl.textContent = ids.length ? ids.length + " selected" : "";
+  }
+
+  list.addEventListener("change", (e) => {
+    if (e.target.classList && e.target.classList.contains("row-select")) update();
+  });
+
+  selectAll.addEventListener("change", () => {
+    list.querySelectorAll(".row-select").forEach((cb) => {
+      cb.checked = selectAll.checked;
+    });
+    update();
+  });
+
+  bulkBtn.addEventListener("click", async () => {
+    const ids = selected();
+    if (!ids.length) return;
+    if (!(await confirmDialog("delete " + ids.length + " selected request(s)?"))) return;
+    try {
+      await api("/admin/api/requests/bulk_delete", {
+        method: "POST",
+        body: JSON.stringify({ ids: ids.map(Number) }),
+      });
+      location.reload();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  document.addEventListener("oob:list-updated", update);
 })();

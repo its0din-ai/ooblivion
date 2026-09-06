@@ -36,10 +36,18 @@
 </section>
 
 <section class="panel" id="req-panel">
+  <div class="row between bulk-bar">
+    <label class="check"><input type="checkbox" id="select-all"><span>Select all on page</span></label>
+    <div class="row">
+      <span class="muted" id="bulk-count"></span>
+      <button class="btn btn-danger" id="bulk-delete" type="button" disabled>Delete selected</button>
+    </div>
+  </div>
   {{template "pagination" .Pagination}}
   <div class="req-list" id="req-list">
     {{range .Items}}
     <div class="req-row {{if .Saved}}req-saved{{end}}">
+      <label class="row-check"><input type="checkbox" class="row-select" value="{{.ID}}"></label>
       <a class="req-main" href="/admin/requests/{{.ID}}">
         <span class="req-method">{{.Method}}</span>
         <span class="req-target">{{.Host}}{{.Path}}{{if .Query}}?<span class="req-query">{{.Query}}</span>{{end}}</span>

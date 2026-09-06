@@ -349,9 +349,22 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   padding: 10px 12px;
 }
 @media (min-width: 640px) {
-  .req-row { flex-direction: row; align-items: center; justify-content: space-between; }
+  .req-row { flex-direction: row; align-items: center; }
+  .req-row .req-main { margin-right: auto; }
 }
 .req-saved { border-color: var(--ok); }
+.row-check { display: inline-flex; align-items: center; padding-right: 4px; }
+.row-check input { width: auto; margin: 0; cursor: pointer; accent-color: var(--accent); }
+@media (max-width: 639px) {
+  .req-row .row-check { align-self: flex-start; margin-top: 2px; }
+}
+
+.bulk-bar {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
 .req-main { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
 .req-method { color: var(--accent); font-weight: 700; }
 .req-target { overflow-wrap: anywhere; }
