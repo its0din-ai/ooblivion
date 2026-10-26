@@ -4,76 +4,130 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Title}}{{.Title}}{{else}}[oob]livion{{end}} - [oob]livion</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#6750a4">
 <link rel="icon" href="/admin/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/admin/static/style.css?v={{.Version}}">
 <script>
 (function () {
-  var t = localStorage.getItem("oob_theme");
-  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  try {
+    var t = localStorage.getItem("oob_theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) {
+      document.documentElement.classList.add("motion-init");
+      setTimeout(function () { document.documentElement.classList.remove("motion-init"); }, 1600);
+    }
+  } catch (e) {}
 })();
 </script>
 </head>
-<body>
-<canvas id="particles" aria-hidden="true"></canvas>
-<header class="topbar">
-  <a class="brand" href="/admin">
-    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<body{{if not .Authed}} class="auth-body"{{end}}>
+<a class="skip-link" href="#main">Skip to content</a>
+
+{{if .Authed}}
+<div class="app-shell">
+  <aside class="drawer" id="drawer" aria-label="Navigation drawer">
+    <div class="drawer-head">
+      <a class="brand" href="/admin">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle>
+          <path d="M12 3v4M12 17v4M3 12h4M17 12h4"></path>
+        </svg>
+        [oob]livion
+      </a>
+    </div>
+    <nav class="nav" id="nav" aria-label="Main navigation">
+      <a href="/admin" {{if eq .Active "home"}}class="active" aria-current="page"{{end}}>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/requests" {{if eq .Active "requests"}}class="active" aria-current="page"{{end}}>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1Z"></path></svg>
+        <span class="nav-label">Requests</span>
+      </a>
+      <a href="/admin/scopes" {{if eq .Active "scopes"}}class="active" aria-current="page"{{end}}>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"></polygon></svg>
+        <span class="nav-label">Scopes</span>
+      </a>
+      <a href="/admin/notifications" {{if eq .Active "notifications"}}class="active" aria-current="page"{{end}}>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+        <span class="nav-label">Notifications</span>
+      </a>
+      <a href="/admin/settings" {{if eq .Active "settings"}}class="active" aria-current="page"{{end}}>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path></svg>
+        <span class="nav-label">Settings</span>
+      </a>
+      <a href="/admin/audit" {{if eq .Active "audit"}}class="active" aria-current="page"{{end}}>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span class="nav-label">Audit</span>
+      </a>
+    </nav>
+    <div class="drawer-foot"><span class="muted">[oob]livion {{.Version}}</span></div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="shell-main">
+    <header class="topbar">
+      <button class="icon-btn" id="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="drawer">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M3 6h18M3 12h18M3 18h18"></path>
+        </svg>
+      </button>
+      <h1 class="topbar-title">
+        {{if eq .Active "home"}}Dashboard
+        {{else if eq .Active "requests"}}Requests
+        {{else if eq .Active "scopes"}}Scopes
+        {{else if eq .Active "notifications"}}Notifications
+        {{else if eq .Active "settings"}}Settings
+        {{else if eq .Active "audit"}}Audit
+        {{else}}[oob]livion{{end}}
+      </h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle theme">
+          <svg class="icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+          </svg>
+          <svg class="icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-ghost" id="logout" type="button">Logout</button>
+      </div>
+    </header>
+    <main class="container" id="main">
+    {{template "content" .}}
+    </main>
+    <footer class="footer"><span class="muted">[oob]livion {{.Version}}</span></footer>
+  </div>
+</div>
+{{else}}
+<header class="auth-topbar">
+  <a class="brand" href="/admin/login">
+    <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="3"></circle>
       <circle cx="12" cy="12" r="9" stroke-dasharray="2 3"></circle>
       <path d="M12 3v4M12 17v4M3 12h4M17 12h4"></path>
     </svg>
     [oob]livion
   </a>
-  {{if .Authed}}
-  <nav class="nav" id="nav">
-    <a href="/admin" {{if eq .Active "home"}}class="active"{{end}}>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
-      Home
-    </a>
-    <a href="/admin/requests" {{if eq .Active "requests"}}class="active"{{end}}>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1Z"></path></svg>
-      Requests
-    </a>
-    <a href="/admin/scopes" {{if eq .Active "scopes"}}class="active"{{end}}>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3"></polygon></svg>
-      Scopes
-    </a>
-    <a href="/admin/notifications" {{if eq .Active "notifications"}}class="active"{{end}}>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
-      Alerts
-    </a>
-    <a href="/admin/settings" {{if eq .Active "settings"}}class="active"{{end}}>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path></svg>
-      Settings
-    </a>
-    <a href="/admin/audit" {{if eq .Active "audit"}}class="active"{{end}}>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-      Audit
-    </a>
-  </nav>
-  <div class="topbar-actions">
-    <button class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
-      <svg class="icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="4"></circle>
-        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
-      </svg>
-      <svg class="icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
-      </svg>
-    </button>
-    <button class="btn btn-ghost" id="logout">Logout</button>
-    <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <path d="M3 6h18M3 12h18M3 18h18"></path>
-      </svg>
-    </button>
-  </div>
-  {{end}}
+  <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle theme">
+    <svg class="icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+    </svg>
+    <svg class="icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+    </svg>
+  </button>
 </header>
-<main class="container">
+<main class="container auth-container" id="main">
 {{template "content" .}}
 </main>
-<div id="toast" class="toast" hidden></div>
+{{end}}
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <div id="modal" class="modal-overlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-message">
     <p id="modal-message" class="modal-message"></p>
@@ -83,8 +137,9 @@
     </div>
   </div>
 </div>
+
+<script src="/admin/static/anime.umd.min.js?v={{.Version}}"></script>
 <script src="/admin/static/app.js?v={{.Version}}"></script>
-<footer class="footer"><span class="muted">[oob]livion {{.Version}}</span></footer>
 {{if .Authed}}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -103,21 +158,21 @@ document.addEventListener("DOMContentLoaded", () => {
 {{define "pagination"}}
 <nav class="pagination" aria-label="pagination">
   {{if .HasPrev}}
-  <a class="btn btn-ghost" href="{{.FirstHref}}">first</a>
-  <a class="btn btn-ghost" href="{{.PrevHref}}">prev</a>
+  <a class="btn" href="{{.FirstHref}}">first</a>
+  <a class="btn" href="{{.PrevHref}}">prev</a>
   {{else}}
-  <span class="btn btn-ghost disabled">first</span>
-  <span class="btn btn-ghost disabled">prev</span>
+  <span class="btn disabled">first</span>
+  <span class="btn disabled">prev</span>
   {{end}}
   {{range .Numbers}}
-  <a class="btn btn-ghost {{if .Active}}active{{end}}" href="{{.Href}}">{{.Number}}</a>
+  <a class="btn {{if .Active}}active{{end}}" href="{{.Href}}">{{.Number}}</a>
   {{end}}
   {{if .HasNext}}
-  <a class="btn btn-ghost" href="{{.NextHref}}">next</a>
-  <a class="btn btn-ghost" href="{{.LastHref}}">last</a>
+  <a class="btn" href="{{.NextHref}}">next</a>
+  <a class="btn" href="{{.LastHref}}">last</a>
   {{else}}
-  <span class="btn btn-ghost disabled">next</span>
-  <span class="btn btn-ghost disabled">last</span>
+  <span class="btn disabled">next</span>
+  <span class="btn disabled">last</span>
   {{end}}
   <span class="muted">page {{.Page}} / {{.Pages}}</span>
 </nav>

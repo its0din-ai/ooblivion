@@ -1,3 +1,16 @@
+/* ==========================================================================
+   [oob]livion admin — Material 3 interactions driven by anime.js v4
+   ========================================================================== */
+
+"use strict";
+
+const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+const desktopQuery = window.matchMedia("(min-width: 1024px)");
+
+function canAnimate() {
+  return !motionQuery.matches && !!window.anime;
+}
+
 const tsFormat = new Intl.DateTimeFormat("id-ID", {
   year: "numeric",
   month: "2-digit",
@@ -14,10 +27,47 @@ function formatHumanTime(iso) {
   return tsFormat.format(d);
 }
 
+/* --------------------------------------------------------------------------
+   Theme
+   -------------------------------------------------------------------------- */
+
 function currentTheme() {
   const stored = localStorage.getItem("oob_theme");
   if (stored === "light" || stored === "dark") return stored;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function syncThemeIcons() {
+  const dark = currentTheme() === "dark";
+  document.querySelectorAll(".theme-icon-sun").forEach((el) => {
+    el.style.display = dark ? "none" : "inline";
+  });
+  document.querySelectorAll(".theme-icon-moon").forEach((el) => {
+    el.style.display = dark ? "inline" : "none";
+  });
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    const surface = getComputedStyle(document.documentElement)
+      .getPropertyValue("--md-surface")
+      .trim();
+    if (surface) meta.setAttribute("content", surface);
+  }
+}
+
+function animateThemeIcon() {
+  if (!canAnimate()) return;
+  const dark = currentTheme() === "dark";
+  const icons = document.querySelectorAll(
+    dark ? ".theme-icon-moon" : ".theme-icon-sun"
+  );
+  if (!icons.length) return;
+  anime.animate(icons, {
+    rotate: [-90, 0],
+    scale: [0.4, 1],
+    opacity: [0, 1],
+    duration: 460,
+    ease: "outBack",
+  });
 }
 
 function applyTheme(theme) {
@@ -29,22 +79,16 @@ function applyTheme(theme) {
     localStorage.removeItem("oob_theme");
   }
   syncThemeIcons();
-  if (window.oobParticles) window.oobParticles.refresh();
 }
 
 function toggleTheme() {
   applyTheme(currentTheme() === "dark" ? "light" : "dark");
+  animateThemeIcon();
 }
 
-function syncThemeIcons() {
-  const dark = currentTheme() === "dark";
-  document.querySelectorAll(".theme-icon-sun").forEach((el) => {
-    el.style.display = dark ? "none" : "inline";
-  });
-  document.querySelectorAll(".theme-icon-moon").forEach((el) => {
-    el.style.display = dark ? "inline" : "none";
-  });
-}
+/* --------------------------------------------------------------------------
+   HTTP helpers
+   -------------------------------------------------------------------------- */
 
 async function api(path, opts = {}) {
   const headers = Object.assign({}, opts.headers || {});
@@ -59,47 +103,365 @@ async function api(path, opts = {}) {
   return data;
 }
 
-let toastTimer;
+/* --------------------------------------------------------------------------
+   Snackbar
+   -------------------------------------------------------------------------- */
+
+let toastTimer = null;
+let toastAnimation = null;
+
+function hideToast() {
+  const el = document.getElementById("toast");
+  if (!el || el.hidden) return;
+  if (!canAnimate()) {
+    el.hidden = true;
+    return;
+  }
+  toastAnimation = anime.animate(el, {
+    opacity: [1, 0],
+    translateY: [0, 12],
+    duration: 220,
+    ease: "inQuad",
+    onComplete: () => {
+      el.hidden = true;
+      el.style.removeProperty("opacity");
+      el.style.removeProperty("transform");
+    },
+  });
+}
 
 function toast(msg) {
   const el = document.getElementById("toast");
   if (!el) return;
   el.textContent = msg;
   el.hidden = false;
+  if (toastAnimation && toastAnimation.cancel) toastAnimation.cancel();
+  if (canAnimate()) {
+    toastAnimation = anime.animate(el, {
+      opacity: [0, 1],
+      translateY: [24, 0],
+      scale: [0.96, 1],
+      duration: 440,
+      ease: "outBack",
+    });
+  }
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.hidden = true), 3000);
+  toastTimer = setTimeout(hideToast, 3200);
 }
+
+/* --------------------------------------------------------------------------
+   Dialog
+   -------------------------------------------------------------------------- */
 
 function confirmDialog(msg, okLabel = "Confirm") {
   return new Promise((resolve) => {
     const overlay = document.getElementById("modal");
+    if (!overlay) return resolve(false);
+    const dialog = overlay.querySelector(".modal");
     const message = document.getElementById("modal-message");
     const ok = document.getElementById("modal-ok");
     const cancel = document.getElementById("modal-cancel");
-    if (!overlay) return resolve(false);
+
     message.textContent = msg;
     ok.textContent = okLabel;
 
-    const onKey = (e) => {
-      if (e.key === "Escape") done(false);
-      if (e.key === "Enter") done(true);
-    };
-    const done = (val) => {
+    let settled = false;
+
+    const cleanup = () => {
       overlay.hidden = true;
+      overlay.style.removeProperty("opacity");
+      dialog.style.removeProperty("opacity");
+      dialog.style.removeProperty("transform");
       document.removeEventListener("keydown", onKey);
       ok.onclick = cancel.onclick = overlay.onclick = null;
-      resolve(val);
     };
-    ok.onclick = () => done(true);
-    cancel.onclick = () => done(false);
+
+    const finish = (val) => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener("keydown", onKey);
+      ok.onclick = cancel.onclick = overlay.onclick = null;
+      if (!canAnimate()) {
+        cleanup();
+        resolve(val);
+        return;
+      }
+      anime.animate(dialog, {
+        opacity: [1, 0],
+        scale: [1, 0.92],
+        duration: 150,
+        ease: "inQuad",
+      });
+      anime.animate(overlay, {
+        opacity: [1, 0],
+        duration: 160,
+        ease: "inQuad",
+        onComplete: () => {
+          cleanup();
+          resolve(val);
+        },
+      });
+    };
+
+    const onKey = (e) => {
+      if (e.key === "Escape") finish(false);
+      if (e.key === "Enter") finish(true);
+    };
+
+    ok.onclick = () => finish(true);
+    cancel.onclick = () => finish(false);
     overlay.onclick = (e) => {
-      if (e.target === overlay) done(false);
+      if (e.target === overlay) finish(false);
     };
     document.addEventListener("keydown", onKey);
+
     overlay.hidden = false;
+    if (canAnimate()) {
+      overlay.style.opacity = "0";
+      dialog.style.opacity = "0";
+      anime.animate(overlay, {
+        opacity: [0, 1],
+        duration: 200,
+        ease: "outQuad",
+      });
+      anime.animate(dialog, {
+        opacity: [0, 1],
+        scale: [0.9, 1],
+        translateY: [12, 0],
+        duration: 340,
+        ease: "outBack",
+      });
+    }
     ok.focus();
   });
 }
+
+/* --------------------------------------------------------------------------
+   Atomic animation helpers shared with page scripts
+   -------------------------------------------------------------------------- */
+
+function countUp(el, value) {
+  if (!el) return;
+  const to = Number(value);
+  if (!isFinite(to)) {
+    el.textContent = String(value);
+    return;
+  }
+  if (!canAnimate()) {
+    el.textContent = String(to);
+    return;
+  }
+  const state = { value: 0 };
+  anime.animate(state, {
+    value: to,
+    duration: 900,
+    ease: "outExpo",
+    onUpdate: () => {
+      el.textContent = String(Math.round(state.value));
+    },
+  });
+}
+
+function reveal(el) {
+  if (!el) return;
+  el.hidden = false;
+  if (!canAnimate()) return;
+  anime.animate(el, {
+    opacity: [0, 1],
+    translateY: [-10, 0],
+    duration: 340,
+    ease: "outQuart",
+  });
+}
+
+function conceal(el, done) {
+  if (!el) return;
+  if (!canAnimate()) {
+    el.hidden = true;
+    if (done) done();
+    return;
+  }
+  anime.animate(el, {
+    opacity: [1, 0],
+    translateY: [0, -10],
+    duration: 200,
+    ease: "inQuad",
+    onComplete: () => {
+      el.hidden = true;
+      el.style.removeProperty("opacity");
+      el.style.removeProperty("transform");
+      if (done) done();
+    },
+  });
+}
+
+function pop(el) {
+  if (!el || !canAnimate()) return;
+  anime.animate(el, { scale: [1, 1.08, 1], duration: 360, ease: "outBack" });
+}
+
+/* --------------------------------------------------------------------------
+   Navigation drawer
+   -------------------------------------------------------------------------- */
+
+function initDrawer() {
+  const drawer = document.getElementById("drawer");
+  const nav = document.getElementById("nav");
+  const toggle = document.getElementById("nav-toggle");
+  const scrim = document.getElementById("scrim");
+  if (!drawer || !toggle || !scrim) return;
+
+  let open = false;
+
+  function setOpen(next) {
+    if (desktopQuery.matches) {
+      open = false;
+      drawer.classList.remove("open");
+      drawer.style.removeProperty("transform");
+      scrim.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      return;
+    }
+    if (next === open) return;
+    open = next;
+    drawer.classList.toggle("open", open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    document.body.classList.toggle("drawer-open", open);
+
+    const width = drawer.getBoundingClientRect().width || 300;
+
+    if (!canAnimate()) {
+      scrim.hidden = !open;
+      if (!open) drawer.style.removeProperty("transform");
+      return;
+    }
+
+    if (open) {
+      scrim.hidden = false;
+      scrim.style.opacity = "0";
+      anime.animate(drawer, {
+        translateX: [-width, 0],
+        duration: 380,
+        ease: "outQuart",
+      });
+      anime.animate(scrim, {
+        opacity: [0, 1],
+        duration: 240,
+        ease: "outQuad",
+      });
+    } else {
+      anime.animate(drawer, {
+        translateX: [0, -width],
+        duration: 280,
+        ease: "inQuart",
+        onComplete: () => {
+          if (!open) drawer.style.removeProperty("transform");
+        },
+      });
+      anime.animate(scrim, {
+        opacity: [1, 0],
+        duration: 220,
+        ease: "inQuad",
+        onComplete: () => {
+          if (!open) {
+            scrim.hidden = true;
+            scrim.style.removeProperty("opacity");
+          }
+        },
+      });
+    }
+  }
+
+  toggle.addEventListener("click", () => setOpen(!open));
+  scrim.addEventListener("click", () => setOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && open) setOpen(false);
+  });
+  if (nav) {
+    nav.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => setOpen(false));
+    });
+  }
+  const onBreakpoint = () => {
+    if (desktopQuery.matches) setOpen(false);
+  };
+  if (desktopQuery.addEventListener) {
+    desktopQuery.addEventListener("change", onBreakpoint);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Ripple micro-interaction
+   -------------------------------------------------------------------------- */
+
+function initRipples() {
+  document.addEventListener("pointerdown", (event) => {
+    if (!canAnimate() || event.button !== 0) return;
+    const host = event.target.closest(".btn, .icon-btn, .nav a, .live-btn");
+    if (!host || host.disabled || host.classList.contains("disabled")) return;
+    const rect = host.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const size = Math.max(rect.width, rect.height) * 2.2;
+    const ripple = document.createElement("span");
+    ripple.className = "ripple";
+    ripple.style.width = size + "px";
+    ripple.style.height = size + "px";
+    ripple.style.left = event.clientX - rect.left + "px";
+    ripple.style.top = event.clientY - rect.top + "px";
+    host.appendChild(ripple);
+    anime.animate(ripple, {
+      scale: [0, 1],
+      opacity: [0.22, 0],
+      duration: 640,
+      ease: "outCubic",
+      onComplete: () => ripple.remove(),
+    });
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Page enter choreography
+   -------------------------------------------------------------------------- */
+
+function animatePageIn() {
+  const root = document.documentElement;
+  const panels = document.querySelectorAll(".panel, .auth-card");
+  const bar = document.querySelector(".topbar, .auth-topbar");
+
+  if (!canAnimate()) {
+    root.classList.remove("motion-init");
+    return;
+  }
+
+  if (bar) {
+    anime.animate(bar, {
+      opacity: [0, 1],
+      translateY: [-8, 0],
+      duration: 460,
+      ease: "outQuad",
+    });
+  }
+
+  if (!panels.length) {
+    root.classList.remove("motion-init");
+    return;
+  }
+
+  anime.animate(panels, {
+    opacity: [0, 1],
+    translateY: [18, 0],
+    scale: [0.985, 1],
+    duration: 620,
+    delay: anime.stagger(80, { start: 30 }),
+    ease: "outQuart",
+    onComplete: () => root.classList.remove("motion-init"),
+  });
+  setTimeout(() => root.classList.remove("motion-init"), 1800);
+}
+
+/* --------------------------------------------------------------------------
+   Boot
+   -------------------------------------------------------------------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
   const flash = new URLSearchParams(location.search).get("flash");
@@ -108,28 +470,30 @@ document.addEventListener("DOMContentLoaded", () => {
   } else if (flash === "error") {
     toast("operation failed");
   }
+
   for (const el of document.querySelectorAll("[data-ts]")) {
     const local = formatHumanTime(el.dataset.ts);
     if (local) el.textContent = local;
   }
-  const toggle = document.getElementById("nav-toggle");
-  const nav = document.getElementById("nav");
-  if (toggle && nav) {
-    toggle.addEventListener("click", () => {
-      const open = nav.classList.toggle("open");
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    });
-    for (const link of nav.querySelectorAll("a")) {
-      link.addEventListener("click", () => nav.classList.remove("open"));
-    }
-  }
+
+  initDrawer();
+  initRipples();
+  syncThemeIcons();
+
   for (const btn of document.querySelectorAll("[data-theme-toggle]")) {
     btn.addEventListener("click", toggleTheme);
   }
-  syncThemeIcons();
+
   if (window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncThemeIcons);
+    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      syncThemeIcons();
+      animateThemeIcon();
+    };
+    if (scheme.addEventListener) scheme.addEventListener("change", onChange);
   }
+
+  animatePageIn();
 });
 
 window.api = api;
@@ -138,117 +502,27 @@ window.confirmDialog = confirmDialog;
 window.toggleTheme = toggleTheme;
 window.applyTheme = applyTheme;
 window.formatHumanTime = formatHumanTime;
+window.countUp = countUp;
+window.reveal = reveal;
+window.conceal = conceal;
+window.pop = pop;
 
-(function () {
-  const canvas = document.getElementById("particles");
-  if (!canvas || !canvas.getContext) return;
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-  const ctx = canvas.getContext("2d");
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  let items = [];
-  let raf = 0;
-
-  function palette() {
-    const s = getComputedStyle(document.documentElement);
-    const accent = (s.getPropertyValue("--accent") || "#58a6ff").trim();
-    const muted = (s.getPropertyValue("--fg-muted") || "#7d8794").trim();
-    return [accent, accent, muted];
-  }
-
-  function spawn() {
-    const p = palette();
-    return {
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: 0.6 + Math.random() * 1.8,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      a: 0.15 + Math.random() * 0.5,
-      tw: Math.random() * Math.PI * 2,
-      tws: 0.008 + Math.random() * 0.02,
-      color: p[Math.floor(Math.random() * p.length)],
-    };
-  }
-
-  function resize() {
-    canvas.width = window.innerWidth * DPR;
-    canvas.height = window.innerHeight * DPR;
-    canvas.style.width = window.innerWidth + "px";
-    canvas.style.height = window.innerHeight + "px";
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    const count = window.innerWidth < 640 ? 45 : 120;
-    items = [];
-    for (let i = 0; i < count; i++) items.push(spawn());
-  }
-
-  function drawLinks() {
-    const link = 130;
-    const maxD = link * link;
-    for (let i = 0; i < items.length; i++) {
-      const a = items[i];
-      for (let j = i + 1; j < items.length; j++) {
-        const b = items[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const d = dx * dx + dy * dy;
-        if (d > maxD) continue;
-        const alpha = (1 - Math.sqrt(d) / link) * 0.3;
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = a.color;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function tick() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of items) {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.tw += p.tws;
-      if (p.x < -10) p.x = canvas.width + 10;
-      if (p.x > canvas.width + 10) p.x = -10;
-      if (p.y < -10) p.y = canvas.height + 10;
-      if (p.y > canvas.height + 10) p.y = -10;
-      ctx.globalAlpha = Math.max(0.05, p.a * (0.5 + 0.5 * Math.sin(p.tw)));
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    drawLinks();
-    raf = requestAnimationFrame(tick);
-  }
-
-  window.addEventListener("resize", resize);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      cancelAnimationFrame(raf);
-    } else {
-      raf = requestAnimationFrame(tick);
-    }
-  });
-  resize();
-  tick();
-
-  window.oobParticles = {
-    refresh: () => {
-      for (const p of items) p.color = palette()[Math.floor(Math.random() * 3)];
-    },
-  };
-})();
+/* --------------------------------------------------------------------------
+   Country flag helper
+   -------------------------------------------------------------------------- */
 
 function countryFlag(code) {
   if (!code || code.length !== 2) return "";
   const c = code.toUpperCase();
-  return String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65) + String.fromCodePoint(0x1F1E6 + c.charCodeAt(1) - 65);
+  return (
+    String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65) +
+    String.fromCodePoint(0x1f1e6 + c.charCodeAt(1) - 65)
+  );
 }
+
+/* --------------------------------------------------------------------------
+   Live request list
+   -------------------------------------------------------------------------- */
 
 (function () {
   const list = document.getElementById("req-list");
@@ -266,9 +540,11 @@ function countryFlag(code) {
   function renderRow(it) {
     const row = document.createElement("div");
     row.className = "req-row" + (it.Saved ? " req-saved" : "");
+    row.dataset.id = String(it.ID);
 
     const checkLabel = document.createElement("label");
     checkLabel.className = "row-check";
+    checkLabel.setAttribute("aria-label", "select request " + it.ID);
     const check = document.createElement("input");
     check.type = "checkbox";
     check.className = "row-select";
@@ -341,7 +617,7 @@ function countryFlag(code) {
     };
     const add = (label, p, active, disabled) => {
       const el = document.createElement(disabled ? "span" : "a");
-      el.className = "btn btn-ghost" + (active ? " active" : "") + (disabled ? " disabled" : "");
+      el.className = "btn" + (active ? " active" : "") + (disabled ? " disabled" : "");
       el.textContent = label;
       if (!disabled) el.href = href(p);
       nav.appendChild(el);
@@ -370,9 +646,12 @@ function countryFlag(code) {
     const key = data.total + ":" + (data.items.length ? data.items[0].ID : "");
     if (key === lastKey) return;
     lastKey = key;
-    if (totalEl) totalEl.textContent = "(" + data.total + ")";
+    if (totalEl) totalEl.textContent = String(data.total);
+
     list.textContent = "";
-    for (const it of data.items) list.appendChild(renderRow(it));
+    const fragment = document.createDocumentFragment();
+    for (const it of data.items) fragment.appendChild(renderRow(it));
+    list.appendChild(fragment);
     if (emptyEl) emptyEl.hidden = data.items.length > 0;
 
     const navs = Array.from(document.querySelectorAll("nav.pagination"));
@@ -392,13 +671,26 @@ function countryFlag(code) {
       const local = formatHumanTime(el.dataset.ts);
       if (local) el.textContent = local;
     });
+
+    if (canAnimate()) {
+      anime.animate(list.querySelectorAll(".req-row"), {
+        opacity: [0, 1],
+        translateY: [10, 0],
+        duration: 420,
+        delay: anime.stagger(35),
+        ease: "outQuart",
+      });
+    }
+
     document.dispatchEvent(new Event("oob:list-updated"));
   }
 
   function poll() {
     if (inFlight || document.hidden) return;
     inFlight = true;
-    fetch("/admin/api/requests" + location.search, { headers: { Accept: "application/json" } })
+    fetch("/admin/api/requests" + location.search, {
+      headers: { Accept: "application/json" },
+    })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad response"))))
       .then(render)
       .catch(() => {})
@@ -409,6 +701,7 @@ function countryFlag(code) {
     panel.classList.add("live-active");
     toggle.classList.add("on");
     toggle.setAttribute("aria-pressed", "true");
+    if (canAnimate()) pop(toggle);
     if (!timer) timer = setInterval(poll, intervalMs);
   }
 
@@ -435,6 +728,10 @@ function countryFlag(code) {
   }
 })();
 
+/* --------------------------------------------------------------------------
+   Bulk selection & delete
+   -------------------------------------------------------------------------- */
+
 (function () {
   const list = document.getElementById("req-list");
   const selectAll = document.getElementById("select-all");
@@ -442,8 +739,12 @@ function countryFlag(code) {
   const countEl = document.getElementById("bulk-count");
   if (!list || !selectAll || !bulkBtn) return;
 
+  function checkedBoxes() {
+    return Array.from(list.querySelectorAll(".row-select:checked"));
+  }
+
   function selected() {
-    return Array.from(list.querySelectorAll(".row-select:checked")).map((cb) => cb.value);
+    return checkedBoxes().map((cb) => cb.value);
   }
 
   function update() {
@@ -475,7 +776,22 @@ function countryFlag(code) {
         method: "POST",
         body: JSON.stringify({ ids: ids.map(Number) }),
       });
-      location.reload();
+      const rows = checkedBoxes()
+        .map((cb) => cb.closest(".req-row"))
+        .filter(Boolean);
+      if (canAnimate() && rows.length) {
+        anime.animate(rows, {
+          opacity: [1, 0],
+          translateX: [0, 28],
+          scale: [1, 0.96],
+          duration: 260,
+          delay: anime.stagger(18),
+          ease: "inQuad",
+          onComplete: () => location.reload(),
+        });
+      } else {
+        location.reload();
+      }
     } catch (err) {
       toast(err.message);
     }

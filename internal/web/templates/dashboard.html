@@ -1,6 +1,5 @@
 {{define "content"}}
 <section class="panel">
-  <h1>Dashboard</h1>
   <div class="stats" id="stats">
     <div class="stat"><span class="stat-num">-</span><span class="stat-label">total</span></div>
     <div class="stat"><span class="stat-num">-</span><span class="stat-label">saved</span></div>
@@ -10,7 +9,7 @@
   </div>
   <p class="muted" id="flush-info"></p>
   <div class="row">
-    <a class="btn" href="/admin/requests">View requests</a>
+    <a class="btn btn-primary" href="/admin/requests">View requests</a>
     <a class="btn" href="/admin/scopes">Manage scopes</a>
     <a class="btn" href="/admin/notifications">Manage alerts</a>
     <a class="btn" href="/admin/settings">Settings</a>
@@ -21,11 +20,14 @@ document.addEventListener("DOMContentLoaded", () => {
   api("/admin/api/stats")
     .then((s) => {
       const nums = document.querySelectorAll("#stats .stat-num");
-      nums[0].textContent = s.total;
-      nums[1].textContent = s.saved;
-      nums[2].textContent = s.today;
-      nums[3].textContent = s.scope_count;
-      nums[4].textContent = s.rule_count;
+      const values = [s.total, s.saved, s.today, s.scope_count, s.rule_count];
+      nums.forEach((el, i) => {
+        if (window.countUp) {
+          countUp(el, values[i]);
+        } else {
+          el.textContent = values[i];
+        }
+      });
       document.getElementById("flush-info").textContent =
         "last flush: " + (s.last_flush_at ? formatHumanTime(s.last_flush_at) : "never");
     })

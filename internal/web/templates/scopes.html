@@ -1,6 +1,5 @@
 {{define "content"}}
 <section class="panel">
-  <h1>Scopes</h1>
   <p class="muted">Requests matching a scope are saved into the saved bucket and never auto-flushed.</p>
 </section>
 
@@ -59,8 +58,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const id = row.dataset.rule;
     const form = row.querySelector(".rule-form");
     row.querySelector("[data-edit]").addEventListener("click", () => {
-      form.hidden = !form.hidden;
-      if (!form.hidden) form.querySelector("input[name='name']").focus();
+      if (form.hidden) {
+        if (window.reveal) reveal(form); else form.hidden = false;
+        form.querySelector("input[name='name']").focus();
+      } else if (window.conceal) {
+        conceal(form);
+      } else {
+        form.hidden = true;
+      }
     });
     row.querySelector("[data-delete]").addEventListener("click", async () => {
       if (!(await confirmDialog("delete this scope?"))) return;

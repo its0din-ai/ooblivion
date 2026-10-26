@@ -4,13 +4,17 @@ VERSION ?= $(shell echo "$(DESCRIBE)" | sed -E 's/-[0-9]+-g/-g/')
 BUILDDATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -s -w -X ooblivion/internal/version.Version=$(VERSION) -X ooblivion/internal/version.Commit=$(COMMIT) -X ooblivion/internal/version.BuildDate=$(BUILDDATE)
 
-.PHONY: build docker-build run up test
+.PHONY: build docker-build run up test dev
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ooblivion ./cmd/ooblivion
 
 run: build
 	./bin/ooblivion
+
+# Local UI preview: http://127.0.0.1:8888/admin (also reachable via localhost)
+dev: build
+	OOB_LISTEN_ADDR=127.0.0.1:8888 ADMIN_HOST="127.0.0.1,localhost" ./bin/ooblivion
 
 docker-build:
 	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILDDATE=$(BUILDDATE) -t ooblivion:local .

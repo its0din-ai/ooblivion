@@ -94,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ta.remove();
         }
         copyBtn.textContent = "Copied";
+        if (window.pop) pop(copyBtn);
         setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
       } catch (err) {
         toast("copy failed");

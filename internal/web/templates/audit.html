@@ -1,7 +1,6 @@
 {{define "content"}}
 <section class="panel">
-  <h1>Audit</h1>
-  <form class="row filter-bar" method="get" action="/admin/audit">
+  <form class="filter-bar" method="get" action="/admin/audit">
     <input type="text" name="ip" value="{{.IP}}" placeholder="ip">
     <select name="action">
       <option value="">all actions</option>
@@ -11,7 +10,7 @@
       {{end}}
     </select>
     <label class="check"><input type="checkbox" name="failed" id="failed" {{if .Failed}}checked{{end}}> failed only</label>
-    <button class="btn" type="submit">Filter</button>
+    <button class="btn btn-primary" type="submit">Filter</button>
   </form>
 </section>
 

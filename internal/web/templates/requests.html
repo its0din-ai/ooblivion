@@ -1,12 +1,10 @@
 {{define "content"}}
 <section class="panel">
-  <div class="row between">
-    <h1>Requests <span class="muted" id="req-total">({{.Total}})</span></h1>
-    <div class="row">
-      <button type="button" id="live-toggle" class="live-btn" aria-pressed="false">Live</button>
-    </div>
+  <div class="row between section-head">
+    <p class="count-line"><strong id="req-total">{{.Total}}</strong> captured requests</p>
+    <button type="button" id="live-toggle" class="live-btn" aria-pressed="false">Live</button>
   </div>
-  <form class="row filter-bar" method="get" action="/admin/requests">
+  <form class="filter-bar" method="get" action="/admin/requests">
     <input type="search" name="q" value="{{.Q}}" placeholder="search path, query, body, ua">
     <input type="text" name="host" value="{{.Host}}" list="host-list" placeholder="host (* wildcard ok, e.g. *.net)">
     <datalist id="host-list">
@@ -31,7 +29,7 @@
       <option value="{{.}}" {{if eq $c .}}selected{{end}}>{{flag .}} {{.}}</option>
       {{end}}
     </select>
-    <button class="btn" type="submit">Filter</button>
+    <button class="btn btn-primary" type="submit">Filter</button>
   </form>
 </section>
 
@@ -61,7 +59,7 @@
     </div>
     {{end}}
   </div>
-  <p class="muted" id="req-empty" {{if .Items}}hidden{{end}}>no requests captured</p>
+  <p class="empty-state" id="req-empty" {{if .Items}}hidden{{end}}>No requests captured yet.</p>
   {{template "pagination" .Pagination}}
 </section>
 <script>

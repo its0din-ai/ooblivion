@@ -17,8 +17,9 @@ rules, and configure Telegram alerts.
 - Visitor IP resolved from `Cf-Connecting-Ip` (Cloudflare), with
   `X-Forwarded-For`, `X-Real-IP`, and remote-address fallbacks; Cloudflare
   country (`Cf-Ipcountry`) shown as a flag.
-- Mobile-first admin UI with light/dark theme (defaults to system), monospaced
-  dashed-border design, hamburger nav with icons and active-state highlight.
+- Material Design 3 admin UI (light/dark, system-aware) with a navigation
+  drawer, tonal cards, and anime.js micro-interactions. Roboto is vendored
+  locally, so the console works offline under a strict CSP.
 - Single operator: password only (min 16 chars), no usernames.
 - JWT HS512 sessions with server-side revocation on logout.
 - Scope rules that auto-save matching requests into a protected bucket;
@@ -69,6 +70,14 @@ Open http://127.0.0.1:8080/admin, log in, and capture a test request:
 
 ```sh
 curl http://127.0.0.1:8080/anything?token=abc123
+```
+
+For a UI preview on port 8888 (accepts both `127.0.0.1` and `localhost` as
+admin hosts):
+
+```sh
+make dev
+# http://127.0.0.1:8888/admin
 ```
 
 ## Configuration
