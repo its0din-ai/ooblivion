@@ -4,7 +4,7 @@ VERSION ?= $(shell echo "$(DESCRIBE)" | sed -E 's/-[0-9]+-g/-g/')
 BUILDDATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -s -w -X ooblivion/internal/version.Version=$(VERSION) -X ooblivion/internal/version.Commit=$(COMMIT) -X ooblivion/internal/version.BuildDate=$(BUILDDATE)
 
-.PHONY: build docker-build run up test dev
+.PHONY: build docker-build run up pull deploy test dev
 
 build:
 	go build -trimpath -ldflags "$(LDFLAGS)" -o bin/ooblivion ./cmd/ooblivion
@@ -19,8 +19,16 @@ dev: build
 docker-build:
 	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILDDATE=$(BUILDDATE) -t ooblivion:local .
 
+# Build the image on this host instead of pulling from GHCR.
 up:
 	OOB_VERSION="$(VERSION)" OOB_COMMIT="$(COMMIT)" docker compose up -d --build
+
+# Deploy a prebuilt image from GHCR (OOB_IMAGE pins the tag; default latest).
+pull:
+	docker compose pull
+
+deploy: pull
+	docker compose up -d
 
 test:
 	./e2e.sh

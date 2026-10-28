@@ -97,29 +97,71 @@ values:
 | `TELEGRAM_THREAD_ID` | Optional topic/thread id within the chat for supergroups with topics. |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, or `error`. |
 | `MAX_BODY_BYTES` | Capture body size cap in bytes, default 1048576. |
+| `HEALTH_CHECK_SECRET` | Secret the compose healthcheck sends as `X-Health-Check` on `/healthz`; matching requests are not captured. Empty disables the bypass. |
 
 `JWT_SECRET` and `ADMIN_PASSWORD` are checked at boot. Never commit `.env`.
 
 ## Docker deployment
 
 Caddy runs on the host. Docker only runs the app and exposes port 8080 so the
-host proxy can reach it. Build and deploy with the version embedded:
+host proxy can reach it.
+
+### Pull the prebuilt image (recommended)
+
+CI builds and pushes to GHCR on every push to `main` and on every `v*` tag
+(`.github/workflows/container.yml`). Image tags:
+
+| tag | when |
+| --- | --- |
+| `v1.6` (same as the git tag) | tag push, version baked into the binary |
+| `sha-<short>` | every build |
+| `latest` | latest `main` build |
+
+The version shown in the UI footer is compiled into the image from the same
+value the image is tagged with, so they always match.
 
 ```sh
 cp .env.example .env
 # set ADMIN_HOST to the public admin domain, for example ooblivion.acme.corp
-make up
+# optionally pin a release: OOB_IMAGE=ghcr.io/its0din-ai/ooblivion:v1.6
+make deploy            # docker compose pull && docker compose up -d
 ```
 
-`make up` derives the version from git tags (see Releases) and passes it to
-Compose. If you use `docker compose` directly, supply the build args:
+The package is private by default even when the repository is public. Either
+flip it to public in the package settings on GitHub, or authenticate once on
+the VPS with a PAT that has `read:packages`:
 
 ```sh
-OOB_VERSION=v1.0 OOB_COMMIT=$(git rev-parse --short HEAD) docker compose up -d --build
+echo "$GHCR_PAT" | docker login ghcr.io -u <github-user> --password-stdin
+```
+
+GHCR is free for public images; private images use the GitHub Packages quota of
+your plan (500 MB storage + 1 GB transfer/month on the Free plan, with the
+static ooblivion image at roughly 25 MB).
+
+### Build on the host instead
+
+```sh
+make up   # docker compose up -d --build, version derived from git tags
+```
+
+or explicitly:
+
+```sh
+OOB_VERSION=v1.6 OOB_COMMIT=$(git rev-parse --short HEAD) docker compose up -d --build
 ```
 
 The SQLite database lives in the `ooblivion_data` Docker volume and persists
 across rebuilds and restarts.
+
+### Healthchecks
+
+`GET /healthz` is a normal, capturable path. A probe is skipped only when it
+carries the `HEALTH_CHECK_SECRET` from `.env` in the `X-Health-Check` header
+(constant-time compared). The compose healthcheck sends that header, so probes
+never appear in the requests list, while a plain `/healthz` hit is recorded like
+any other request. With `HEALTH_CHECK_SECRET` empty there is no bypass and
+healthcheck traffic is captured.
 
 ## Reverse proxy (Caddy, multi-domain)
 

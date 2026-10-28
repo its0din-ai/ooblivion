@@ -6,20 +6,25 @@
 #      (the Host header seen by the app is the proxy hostname, not 127.0.0.1)
 #   3. Optionally set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID
 #   4. On the host: use Caddyfile.example and point it at 127.0.0.1:8080
-#   5. docker compose up -d --build
+#   5. docker compose pull && docker compose up -d      (prebuilt GHCR image)
+#      or: docker compose up -d --build                 (build locally)
+#
+# The default image is the published GHCR build. Pin a release with
+# OOB_IMAGE=ghcr.io/its0din-ai/ooblivion:v1.6 in .env; the version shown in the
+# UI is baked into the image at build time, so image tag == displayed version.
 #
 # The ooblivion port is exposed to the host so the host Caddy can reach it.
 # Data (SQLite) is persisted in the ooblivion_data volume. It survives rebuilds and restarts.
 
 services:
   ooblivion:
+    image: ${OOB_IMAGE:-ghcr.io/its0din-ai/ooblivion:latest}
     build:
       context: .
       args:
         VERSION: ${OOB_VERSION:-dev}
         COMMIT: ${OOB_COMMIT:-dev}
         BUILDDATE: ${OOB_BUILDDATE:-}
-    image: ooblivion:local
     restart: unless-stopped
     env_file:
       - .env
@@ -34,7 +39,11 @@ services:
     volumes:
       - ooblivion_data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/admin/login"]
+      # The probe sends HEALTH_CHECK_SECRET from .env as X-Health-Check, so its
+      # /healthz hits are answered 200 and never stored. Without the secret every
+      # /healthz request is captured like any other path. The port comes from
+      # OOB_LISTEN_ADDR so overrides stay in sync.
+      test: ["CMD-SHELL", "wget -q -O /dev/null --header=\"X-Health-Check: $${HEALTH_CHECK_SECRET}\" http://127.0.0.1:$${OOB_LISTEN_ADDR##*:}/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3

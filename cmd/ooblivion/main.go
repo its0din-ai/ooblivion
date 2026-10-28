@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -57,11 +58,12 @@ func main() {
 	store := capture.NewStore(handle, cfg.MaxBodyBytes)
 
 	root := &rootHandler{
-		store:      store,
-		classifier: classifier,
-		admin:      app.Routes(),
-		adminHosts: cfg.AdminHosts,
-		catchAll:   http.HandlerFunc(catchAll),
+		store:        store,
+		classifier:   classifier,
+		admin:        app.Routes(),
+		adminHosts:   cfg.AdminHosts,
+		catchAll:     http.HandlerFunc(catchAll),
+		healthSecret: cfg.HealthCheckSecret,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -120,14 +122,28 @@ func ensureAuth(handle *sql.DB, adminPassword string) error {
 }
 
 type rootHandler struct {
-	store      *capture.Store
-	classifier *capture.Classifier
-	admin      http.Handler
-	adminHosts []string
-	catchAll   http.Handler
+	store        *capture.Store
+	classifier   *capture.Classifier
+	admin        http.Handler
+	adminHosts   []string
+	catchAll     http.Handler
+	healthSecret string
 }
 
+const (
+	healthPath   = "/healthz"
+	healthHeader = "X-Health-Check"
+)
+
 func (h *rootHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.isHealthProbe(r) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+		return
+	}
+
 	if strings.HasPrefix(r.URL.Path, "/admin") && h.isAdminHost(r) {
 		h.admin.ServeHTTP(w, r)
 		return
@@ -138,6 +154,22 @@ func (h *rootHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = h.classifier.Classify(req, subjectFromRequest(req))
 	}
 	h.catchAll.ServeHTTP(w, r)
+}
+
+// isHealthProbe reports whether the request is the container healthcheck: the
+// /healthz path carrying the shared secret from HEALTH_CHECK_SECRET in the
+// X-Health-Check header. Only those requests skip capture; anything else on
+// /healthz (including a missing or wrong header) is recorded like any other
+// request.
+func (h *rootHandler) isHealthProbe(r *http.Request) bool {
+	if r.URL.Path != healthPath {
+		return false
+	}
+	if h.healthSecret == "" {
+		return false
+	}
+	got := r.Header.Get(healthHeader)
+	return subtle.ConstantTimeCompare([]byte(got), []byte(h.healthSecret)) == 1
 }
 
 func (h *rootHandler) isAdminHost(r *http.Request) bool {
