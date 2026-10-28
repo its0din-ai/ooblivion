@@ -1,7 +1,7 @@
 {{define "content"}}
 <section class="panel">
-  <div class="row between">
-    <h1>{{.Request.Method}} {{.Request.Host}}{{.Request.Path}}{{if .Request.Query}}?{{.Request.Query}}{{end}}</h1>
+  <div class="row between detail-head">
+    <h1>#{{.Request.ID}}</h1>
     <div class="row">
       {{if .Request.Saved}}
       <button class="btn" data-action="unsave" data-id="{{.Request.ID}}">Unsave</button>
@@ -13,18 +13,21 @@
     </div>
   </div>
   <dl class="kv">
-    <dt>id</dt><dd>{{.Request.ID}}</dd>
+    <dt>uri</dt><dd><button class="copy-value" type="button" data-copy="{{if .Request.Scheme}}{{.Request.Scheme}}://{{end}}{{.Request.Host}}{{.Request.Path}}{{if .Request.Query}}?{{.Request.Query}}{{end}}" title="click to copy"><span class="copy-value-text">{{if .Request.Scheme}}{{.Request.Scheme}}://{{end}}{{.Request.Host}}{{.Request.Path}}{{if .Request.Query}}?{{.Request.Query}}{{end}}</span><span class="copy-value-hint">copy</span></button></dd>
     <dt>method</dt><dd>{{.Request.Method}}</dd>
+    <dt>path</dt><dd>{{.Request.Path}}</dd>
+    <dt>source_ip</dt><dd>{{if .Request.SourceIP}}<a href="https://ipinfo.io/{{.Request.SourceIP}}" target="_blank" rel="noopener noreferrer">{{.Request.SourceIP}}</a>{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>ip_country</dt><dd>{{if .Request.IPCountry}}{{flag .Request.IPCountry}} {{.Request.IPCountry}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+    <dt>ua</dt><dd>{{if .Request.UserAgent}}{{.Request.UserAgent}}{{else}}<span class="value-none">none</span>{{end}}</dd>
+  </dl>
+
+  <dl class="kv kv-more" id="kv-more" hidden>
     <dt>scheme</dt><dd>{{if .Request.Scheme}}{{.Request.Scheme}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>host</dt><dd>{{if .Request.Host}}{{.Request.Host}}{{else}}<span class="value-none">none</span>{{end}}</dd>
-    <dt>path</dt><dd>{{.Request.Path}}</dd>
     <dt>query</dt><dd>{{if .Request.Query}}{{.Request.Query}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>http_version</dt><dd>{{if .Request.HTTPVersion}}{{.Request.HTTPVersion}}{{else}}<span class="value-none">none</span>{{end}}</dd>
-    <dt>source_ip</dt><dd>{{if .Request.SourceIP}}<a href="https://ipinfo.io/{{.Request.SourceIP}}" target="_blank" rel="noopener noreferrer">{{.Request.SourceIP}}</a>{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>remote_addr</dt><dd>{{if .Request.RemoteAddr}}{{.Request.RemoteAddr}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>forwarded_for</dt><dd>{{if .Request.ForwardedFor}}{{.Request.ForwardedFor}}{{else}}<span class="value-none">none</span>{{end}}</dd>
-    <dt>user_agent</dt><dd>{{if .Request.UserAgent}}{{.Request.UserAgent}}{{else}}<span class="value-none">none</span>{{end}}</dd>
-    <dt>ip_country</dt><dd>{{if .Request.IPCountry}}{{flag .Request.IPCountry}} {{.Request.IPCountry}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>content_type</dt><dd>{{if .Request.ContentType}}{{.Request.ContentType}}{{else}}<span class="value-none">none</span>{{end}}</dd>
     <dt>created_at</dt><dd><time data-ts="{{.Request.CreatedAt}}">{{.Request.CreatedAt}}</time></dd>
     <dt>saved</dt><dd>{{.Request.Saved}}</dd>
@@ -32,6 +35,8 @@
     <dt>notified</dt><dd>{{.Request.Notified}}</dd>
     <dt>body_truncated</dt><dd>{{.Request.BodyTruncated}}</dd>
   </dl>
+
+  <button class="kv-toggle" id="kv-toggle" type="button" aria-expanded="false" aria-controls="kv-more">click to expand</button>
 
   <div class="row between">
     <h2>Headers</h2>
@@ -41,9 +46,17 @@
 
   <div class="row between">
     <h2>Body</h2>
-    {{if .Request.Body}}<button class="btn btn-ghost" id="copy-body" type="button">Copy</button>{{end}}
+    {{if and .Request.Body (not .BodyHidden)}}<button class="btn btn-ghost" id="copy-body" type="button">Copy</button>{{end}}
   </div>
+  {{if .BodyHidden}}
+  <div class="body-blocked">
+    <p class="body-blocked-title">body hidden</p>
+    <p class="body-blocked-desc">{{.BodyHiddenReason}} · {{.BodySize}}{{if .Request.BodyTruncated}} (stored body was truncated at the capture limit){{end}}</p>
+    <a class="btn btn-primary" href="/admin/api/requests/{{.Request.ID}}/download" download>Download body</a>
+  </div>
+  {{else}}
   <pre class="code" id="body-pre">{{if .Request.Body}}{{.Request.Body}}{{else}}<span class="value-none">none</span>{{end}}</pre>
+  {{end}}
 </section>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -83,22 +96,34 @@ document.addEventListener("DOMContentLoaded", () => {
     copyBtn.addEventListener("click", async () => {
       const text = document.getElementById("body-pre").textContent;
       try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(text);
-        } else {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          ta.remove();
-        }
+        await copyText(text);
         copyBtn.textContent = "Copied";
         if (window.pop) pop(copyBtn);
         setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
       } catch (err) {
         toast("copy failed");
       }
+    });
+  }
+  for (const el of document.querySelectorAll("[data-copy]")) {
+    el.addEventListener("click", async () => {
+      try {
+        await copyText(el.dataset.copy);
+        if (window.pop) pop(el);
+        toast("copied");
+      } catch (err) {
+        toast("copy failed");
+      }
+    });
+  }
+  const kvToggle = document.getElementById("kv-toggle");
+  const kvMore = document.getElementById("kv-more");
+  if (kvToggle && kvMore) {
+    kvToggle.addEventListener("click", () => {
+      const open = kvMore.hidden;
+      kvMore.hidden = !open;
+      kvToggle.setAttribute("aria-expanded", String(open));
+      kvToggle.textContent = open ? "click to collapse" : "click to expand";
     });
   }
 });

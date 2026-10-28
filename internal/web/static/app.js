@@ -300,6 +300,21 @@ function pop(el) {
   anime.animate(el, { scale: [1, 1.08, 1], duration: 360, ease: "outBack" });
 }
 
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  ta.remove();
+}
+
 /* --------------------------------------------------------------------------
    Navigation drawer
    -------------------------------------------------------------------------- */
@@ -506,6 +521,7 @@ window.countUp = countUp;
 window.reveal = reveal;
 window.conceal = conceal;
 window.pop = pop;
+window.copyText = copyText;
 
 /* --------------------------------------------------------------------------
    Country flag helper

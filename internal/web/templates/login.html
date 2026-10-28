@@ -1,4 +1,8 @@
 {{define "content"}}
+<div class="auth-backdrop" aria-hidden="true">
+  <span class="auth-orb auth-orb-top"></span>
+  <span class="auth-orb auth-orb-bottom"></span>
+</div>
 <section class="auth-card">
   <div class="auth-brand">
     <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -15,6 +19,10 @@
     <button type="submit" class="btn btn-primary btn-block" id="login-submit">Sign in</button>
     <p id="login-error" class="error" hidden></p>
   </form>
+  <div class="auth-meta">
+    <span class="auth-version">deployed {{.Version}}</span>
+    <p class="auth-lost">Lost? go back to <a href="https://www.encrypt0r.net/" target="_blank" rel="noopener noreferrer">https://www.encrypt0r.net/</a></p>
+  </div>
 </section>
 <script>
 document.addEventListener("DOMContentLoaded", () => {

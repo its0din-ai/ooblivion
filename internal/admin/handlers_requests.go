@@ -195,12 +195,125 @@ func (s *Server) handleDetailPage(w http.ResponseWriter, r *http.Request) {
 	}
 	var headers map[string]string
 	_ = json.Unmarshal([]byte(req.RequestHeaders), &headers)
-	s.render(w, r, "detail", map[string]any{
+	data := map[string]any{
 		"Title":          fmt.Sprintf("Request #%d", id),
 		"Request":        req,
 		"Headers":        headers,
 		"HeadersPresent": len(headers) > 0,
-	})
+	}
+	if hidden, reason := bodyDisplayState(req.Body); hidden {
+		data["BodyHidden"] = true
+		data["BodyHiddenReason"] = reason
+		data["BodySize"] = humanBytes(len(req.Body))
+	}
+	s.render(w, r, "detail", data)
+}
+
+// maxDisplayBody caps how much body text is inlined into the detail page.
+// Anything larger (or anything that is not plain ASCII text) is replaced by a
+// placeholder and offered as a raw download instead, so the browser never has
+// to lay out megabytes of text or binary data.
+const maxDisplayBody = 64 << 10
+
+func bodyDisplayState(body string) (hidden bool, reason string) {
+	if body == "" {
+		return false, ""
+	}
+	tooLarge := len(body) > maxDisplayBody
+	binary := !isDisplayableText(body)
+	switch {
+	case tooLarge && binary:
+		return true, "body contains binary or non-ASCII data and is too large to display inline"
+	case tooLarge:
+		return true, "body is too large to display inline"
+	case binary:
+		return true, "body contains binary or non-ASCII data"
+	}
+	return false, ""
+}
+
+// isDisplayableText reports whether s can be rendered safely in a <pre> block:
+// ASCII only, no control bytes other than tab, newline and carriage return.
+func isDisplayableText(s string) bool {
+	for i := 0; i < len(s); i++ {
+		b := s[i]
+		switch {
+		case b == '\t' || b == '\n' || b == '\r':
+		case b < 0x20 || b == 0x7f || b >= 0x80:
+			return false
+		}
+	}
+	return true
+}
+
+func humanBytes(n int) string {
+	if n < 1024 {
+		return fmt.Sprintf("%d B", n)
+	}
+	units := []string{"KiB", "MiB", "GiB", "TiB"}
+	v := float64(n)
+	i := -1
+	for v >= 1024 && i < len(units)-1 {
+		v /= 1024
+		i++
+	}
+	return fmt.Sprintf("%.1f %s", v, units[i])
+}
+
+func (s *Server) handleDownloadBody(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+	req, err := s.getRequest(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	name := fmt.Sprintf("request-%d%s", id, bodyFileExt(req.ContentType))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", name))
+	w.Header().Set("Content-Length", strconv.Itoa(len(req.Body)))
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write([]byte(req.Body))
+}
+
+func bodyFileExt(contentType string) string {
+	ct := strings.ToLower(contentType)
+	switch {
+	case strings.Contains(ct, "json"):
+		return ".json"
+	case strings.Contains(ct, "xml"):
+		return ".xml"
+	case strings.Contains(ct, "csv"):
+		return ".csv"
+	case strings.Contains(ct, "javascript"):
+		return ".js"
+	case strings.Contains(ct, "html"):
+		return ".html"
+	case strings.Contains(ct, "x-www-form-urlencoded"):
+		return ".txt"
+	case strings.Contains(ct, "text/"):
+		return ".txt"
+	case strings.Contains(ct, "pdf"):
+		return ".pdf"
+	case strings.Contains(ct, "png"):
+		return ".png"
+	case strings.Contains(ct, "jpeg"), strings.Contains(ct, "jpg"):
+		return ".jpg"
+	case strings.Contains(ct, "gif"):
+		return ".gif"
+	case strings.Contains(ct, "webp"):
+		return ".webp"
+	case strings.Contains(ct, "zip"):
+		return ".zip"
+	case strings.Contains(ct, "gzip"):
+		return ".gz"
+	default:
+		return ".bin"
+	}
 }
 
 func (s *Server) handleListRequests(w http.ResponseWriter, r *http.Request) {

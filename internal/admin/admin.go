@@ -93,6 +93,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /admin/api/stats", s.auth(s.handleStats))
 	mux.HandleFunc("GET /admin/api/requests", s.auth(s.handleListRequests))
 	mux.HandleFunc("GET /admin/api/requests/{id}", s.auth(s.handleGetRequest))
+	mux.HandleFunc("GET /admin/api/requests/{id}/download", s.auth(s.handleDownloadBody))
 	mux.HandleFunc("POST /admin/api/requests/{id}/save", s.formAware(s.auth(s.handleSaveRequest)))
 	mux.HandleFunc("POST /admin/api/requests/{id}/unsave", s.formAware(s.auth(s.handleUnsaveRequest)))
 	mux.HandleFunc("DELETE /admin/api/requests/{id}", s.formAware(s.auth(s.handleDeleteRequest)))
